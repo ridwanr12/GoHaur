@@ -25,6 +25,11 @@ const ProfileScreen = ({navigation}) => {
     console.log('Order button berhasil');
     navigation.navigate('Order');
   };
+  const handleNotification = () => {
+    // Implementasi logika notifikasi
+    console.log('Notification button berhasil');
+    navigation.navigate('Notification');
+  };
 
   // Data profil pengguna
   const userData = {
@@ -51,7 +56,7 @@ const ProfileScreen = ({navigation}) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profil</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleNotification}>
           <Image
             source={require('../../assets/notification.png')}
             style={styles.notificationIcon}
@@ -82,18 +87,14 @@ const ProfileScreen = ({navigation}) => {
       </TouchableOpacity>
 
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.navItem} onPress={handleHome}>
           <Image
             source={require('../../assets/home.png')}
             style={styles.navIcon}
           />
           <Text style={styles.navText}>Beranda</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Cart')}>
+        <TouchableOpacity style={styles.navItem} onPress={handleCart}>
           <Image
             source={require('../../assets/cart.png')}
             style={styles.navIcon}
@@ -109,7 +110,7 @@ const ProfileScreen = ({navigation}) => {
           />
           <Text style={styles.navText}>Pesanan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity style={styles.navItem} onPress={handleOrder}>
           <Image
             source={require('../../assets/profileActive.png')}
             style={styles.navIcon}

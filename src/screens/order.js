@@ -94,6 +94,11 @@ const OrderScreen = ({navigation}) => {
     console.log('Profile button berhasil');
     navigation.navigate('Profile');
   };
+  const handleNotification = () => {
+    // Implementasi logika notifikasi
+    console.log('Notification button berhasil');
+    navigation.navigate('Notification');
+  };
 
   const [activeTab, setActiveTab] = useState('Semua');
 
@@ -102,8 +107,8 @@ const OrderScreen = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Pesanan</Text>
-        <TouchableOpacity>
+        <Text style={styles.headerTitle}>GOHAUR</Text>
+        <TouchableOpacity onPress={handleNotification}>
           <Image
             source={require('../../assets/notification.png')}
             style={styles.notificationIcon}

@@ -11,6 +11,8 @@ import fonts from './constants/styles';
 import HomeScreen from './screens/home';
 import OrderScreen from './screens/order';
 import ProfileScreen from './screens/profile';
+import NotificationScreen from './screens/notification';
+import CartScreen from './screens/cart';
 
 const Stack = createNativeStackNavigator();
 
@@ -32,13 +34,13 @@ const App = () => {
             headerShown: false,
           }}
         />
-        {/* <Stack.Screen
+        <Stack.Screen
           name="Cart"
           component={CartScreen}
           options={{
             headerShown: false,
           }}
-        /> */}
+        />
         <Stack.Screen
           name="Order"
           component={OrderScreen}
@@ -49,6 +51,13 @@ const App = () => {
         <Stack.Screen
           name="Profile"
           component={ProfileScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Notification"
+          component={NotificationScreen}
           options={{
             headerShown: false,
           }}
