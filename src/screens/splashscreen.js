@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {View, Image, StyleSheet, StatusBar, Text} from 'react-native';
+import {View, Image, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import fonts from '../constants/styles';
 

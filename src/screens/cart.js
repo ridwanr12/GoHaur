@@ -33,7 +33,12 @@ const CartScreen = ({navigation}) => {
     console.log('Notification button berhasil');
     navigation.navigate('Notification');
   };
-  
+  const handlePayment = () => {
+    // Implementasi logika login
+    console.log('Bayar button berhasil');
+    navigation.navigate('Payment');
+  };
+
   const [quantities, setQuantities] = useState({
     1: 2,
     2: 2,
@@ -173,18 +178,17 @@ const CartScreen = ({navigation}) => {
                   <Text style={styles.foodPrice}>
                     Rp {item.price.toLocaleString('id-ID')}/ Item
                   </Text>
-                  
                   <View style={styles.noteContainer}>
                     <Text style={styles.noteLabel}>Note: </Text>
                     <View style={styles.noteInputContainer}>
-                      <Text style={styles.noteText}>{item.note}</Text>
+                      <TextInput style={styles.noteText}>{item.note}</TextInput>
                     </View>
                   </View>
                 </View>
-                
                 <View style={styles.priceQuantityContainer}>
                   <Text style={styles.totalPrice}>
-                    Total : Rp {(item.price * quantities[item.id]).toLocaleString('id-ID')}
+                    Total : Rp{' '}
+                    {(item.price * quantities[item.id]).toLocaleString('id-ID')}
                   </Text>
                   <View style={styles.quantityControls}>
                     <TouchableOpacity
@@ -192,7 +196,9 @@ const CartScreen = ({navigation}) => {
                       onPress={() => decrementQuantity(item.id)}>
                       <Text style={styles.quantityButtonText}>-</Text>
                     </TouchableOpacity>
-                    <Text style={styles.quantityText}>{quantities[item.id]}</Text>
+                    <Text style={styles.quantityText}>
+                      {quantities[item.id]}
+                    </Text>
                     <TouchableOpacity
                       style={styles.quantityButton}
                       onPress={() => incrementQuantity(item.id)}>
@@ -211,14 +217,19 @@ const CartScreen = ({navigation}) => {
         <View style={styles.checkoutInfo}>
           <Text style={styles.checkoutTitle}>Pilih dan Bayar</Text>
           <View style={styles.checkoutDetails}>
-            <Text style={styles.vendorCheckout}>Sate Joko Khas Haur Pancuh</Text>
-            <Text style={styles.totalCheckout}>
-              Total Rp {calculateGrandTotal().toLocaleString('id-ID')}
+            <Text style={styles.vendorCheckout}>
+              Sate Joko Khas Haur Pancuh
+            </Text>
+            <Text style={styles.checkoutText}>
+              {'Total '}
+              <Text style={styles.checkoutPriceText}>
+                {formatCurrency(calculateGrandTotal())}
+              </Text>
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.bayarButton}>
-          <Text style={styles.bayarButtonText}>Bayar</Text>
+        <TouchableOpacity style={styles.checkoutButton} onPress={handlePayment}>
+          <Text style={styles.checkoutButtonText}>Bayar</Text>
         </TouchableOpacity>
       </View>
 
@@ -289,7 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'top',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -316,9 +327,12 @@ const styles = StyleSheet.create({
   },
   changeButton: {
     backgroundColor: '#FF6B35',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+    position: 'absolute',
+    top: 9,
+    right: 9,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 10,
   },
   changeButtonText: {
     color: 'white',
@@ -328,6 +342,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 15,
+    paddingBottom: 100, // Tambahkan padding bottom untuk memberikan ruang bagi panel checkout
   },
   vendorSection: {
     backgroundColor: 'white',
@@ -424,6 +439,7 @@ const styles = StyleSheet.create({
   noteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '200%',
   },
   noteLabel: {
     fontSize: 12,
@@ -432,11 +448,11 @@ const styles = StyleSheet.create({
   },
   noteInputContainer: {
     flex: 1,
+    margin: 10,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
-    borderRadius: 15,
+    borderColor: '#ABABAB',
+    borderRadius: 20,
     paddingHorizontal: 10,
-    paddingVertical: 3,
   },
   noteText: {
     fontSize: 12,
@@ -479,43 +495,63 @@ const styles = StyleSheet.create({
   checkoutPanel: {
     backgroundColor: 'white',
     padding: 15,
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    // borderWidth: 1,
+    borderColor: '#EEEEEE',
+    borderRadius: 15,
+    marginHorizontal: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    position: 'absolute',
+    bottom: 70, // Posisi di atas bottom navigation
+    left: 0,
+    right: 0,
   },
   checkoutInfo: {
     flex: 1,
   },
   checkoutTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: fonts.poppinsMedium,
     color: '#000',
-    marginBottom: 5,
+    marginBottom: 10,
   },
   checkoutDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
   },
   vendorCheckout: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsRegular,
-    color: '#666',
+    fontSize: 14,
+    fontFamily: fonts.poppinsBold,
+    color: '#000',
   },
-  totalCheckout: {
-    fontSize: 12,
+  checkoutText: {
+    fontSize: 14,
     fontFamily: fonts.poppinsMedium,
     color: '#000',
   },
-  bayarButton: {
+  checkoutPriceText: {
+    fontSize: 14,
+    fontFamily: fonts.poppinsBold,
+    color: '#000',
+  },
+  checkoutButton: {
     backgroundColor: '#FF6B35',
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingHorizontal: 25,
     borderRadius: 10,
-    marginLeft: 15,
+    marginLeft: 10,
   },
-  bayarButtonText: {
+  checkoutButtonText: {
     color: 'white',
     fontSize: 16,
     fontFamily: fonts.poppinsBold,
@@ -536,8 +572,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderTopWidth: 2,
-    borderTopColor: '#FF6B35',
   },
   navIcon: {
     width: 24,

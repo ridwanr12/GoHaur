@@ -72,30 +72,30 @@ const NotificationScreen = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FF6B35" barStyle="light-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>{'<'}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifikasi</Text>
       </View>
-      
+
       {/* Daftar Notifikasi */}
-      <ScrollView 
+      <ScrollView
         style={styles.notificationList}
-        showsVerticalScrollIndicator={false}
-      >
-        {notifications.map((notification) => (
+        showsVerticalScrollIndicator={false}>
+        {notifications.map(notification => (
           <View key={notification.id} style={styles.notificationItem}>
             <View style={styles.notificationContent}>
               <Text style={styles.notificationTitle}>{notification.title}</Text>
               <Text style={styles.notificationDate}>{notification.date}</Text>
             </View>
-            <Text style={styles.notificationMessage}>{notification.message}</Text>
+            <Text style={styles.notificationMessage}>
+              {notification.message}
+            </Text>
           </View>
         ))}
       </ScrollView>

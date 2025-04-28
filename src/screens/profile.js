@@ -49,7 +49,7 @@ const ProfileScreen = ({navigation}) => {
   const handleViewProfileDetails = () => {
     // Implementasi navigasi ke halaman detail profil
     console.log('Navigasi ke detail profil');
-    // navigation.navigate('ProfileDetail');
+    navigation.navigate('ProfileDetail');
   };
 
   return (
@@ -226,7 +226,9 @@ const styles = StyleSheet.create({
     borderTopColor: '#EEEEEE',
   },
   navItem: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navIcon: {
     width: 24,

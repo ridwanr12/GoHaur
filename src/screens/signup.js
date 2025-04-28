@@ -23,7 +23,7 @@ const SignupScreen = ({navigation}) => {
   const handleSignup = () => {
     // Implementasi logika pendaftaran
     console.log('Pendaftaran berhasil');
-    // navigation.navigate('Home');
+    navigation.navigate('Home');
   };
 
   return (

@@ -5,11 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
   ScrollView,
   SafeAreaView,
+  StatusBar,
+  Image,
 } from 'react-native';
 import fonts from '../constants/styles';
+// import {Image} from 'react-native-reanimated/lib/typescript/Animated';
 
 const ForgetScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
@@ -20,9 +22,27 @@ const ForgetScreen = ({navigation}) => {
     // navigation.navigate('Home');
   };
 
+  const handleBack = () => {
+    navigation.goBack();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <StatusBar backgroundColor="#FF6B35" barStyle="light-content" />
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Image
+            source={require('../../assets/back.png')}
+            style={styles.backButtonIcon}
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Ganti Password</Text>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}>
         <Text style={styles.title}>
           Masukkan alamat email Anda untuk menerima tautan pembaruan kata sandi.
         </Text>
@@ -41,7 +61,7 @@ const ForgetScreen = ({navigation}) => {
 
         <View style={styles.forgetContainer}>
           <Text style={styles.forgetText}>
-            Sudah Selesai?{' '}
+            Sudah Memiliki Akun?{' '}
             <Text
               style={styles.signInLink}
               onPress={() => navigation.navigate('Signin')}>
@@ -62,6 +82,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  header: {
+    backgroundColor: '#FF6B35',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  backButton: {
+    marginRight: 15,
+  },
+  backButtonIcon: {
+    width: 12,
+    height: 24,
+    marginBottom: 5,
+    tintColor: 'white',
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontFamily: fonts.poppinsMedium,
+  },
+  scrollView: {
     padding: 20,
   },
   title: {

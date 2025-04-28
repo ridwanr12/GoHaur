@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -109,47 +109,71 @@ const restaurantData = [
 ];
 
 // Komponen untuk menampilkan menu item
-const MenuItem = ({item}) => {
+const MenuItem = ({item, restaurant, navigation}) => {
+  const handleProductPress = () => {
+    console.log('Product pressed:', item.name);
+    navigation.navigate('Store', {
+      storeData: restaurant,
+      selectedProductId: item.id,
+      showProductPopup: true,
+    });
+  };
+
   return (
-    <View style={styles.menuItem}>
-      <Image source={item.image} style={styles.menuImage} />
-      <Text style={styles.menuName}>{item.name}</Text>
-      <View style={styles.menuPriceContainer}>
-        <Text style={styles.menuPrice}>{item.price}</Text>
-        <Text style={styles.menuSold}>{item.sold}</Text>
+    <TouchableOpacity onPress={handleProductPress}>
+      <View style={styles.menuItem}>
+        <Image source={item.image} style={styles.menuImage} />
+        <Text style={styles.menuName}>{item.name}</Text>
+        <View style={styles.menuPriceContainer}>
+          <Text style={styles.menuPrice}>{item.price}</Text>
+          <Text style={styles.menuSold}>{item.sold}</Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 // Komponen untuk menampilkan restoran
-const RestaurantCard = ({item}) => {
+const RestaurantCard = ({item, navigation}) => {
+  const handleRestaurant = () => {
+    // Implementasi logika profile
+    console.log('Toko button berhasil');
+    navigation.navigate('Store', {storeData: item}); // Ubah ke Store dan kirim data item
+  };
+
   return (
     <View style={styles.restaurantCard}>
-      <View style={styles.restaurantHeader}>
-        <View style={styles.restaurantInfo}>
-          <Image source={item.image} style={styles.restaurantImage} />
-          <View>
-            <Text style={styles.restaurantName}>{item.name}</Text>
-            <Text style={styles.restaurantLocation}>{item.location}</Text>
+      <TouchableOpacity onPress={handleRestaurant}>
+        <View style={styles.restaurantHeader}>
+          <View style={styles.restaurantInfo}>
+            <Image source={item.image} style={styles.restaurantImage} />
+            <View>
+              <Text style={styles.restaurantName}>{item.name}</Text>
+              <Text style={styles.restaurantLocation}>{item.location}</Text>
+            </View>
+          </View>
+          <View style={styles.ratingContainer}>
+            <Text style={styles.totalOrders}>{item.totalOrders}</Text>
+            <View style={styles.ratingWrapper}>
+              <Text style={styles.rating}>{item.rating}</Text>
+              <Image
+                source={require('../../assets/star.png')}
+                style={styles.starIcon}
+              />
+            </View>
           </View>
         </View>
-        <View style={styles.ratingContainer}>
-          <Text style={styles.totalOrders}>{item.totalOrders}</Text>
-          <View style={styles.ratingWrapper}>
-            <Text style={styles.rating}>{item.rating}</Text>
-            <Image
-              source={require('../../assets/star.png')}
-              style={styles.starIcon}
-            />
-          </View>
-        </View>
-      </View>
+      </TouchableOpacity>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.menuContainer}>
           {item.menu.map(menuItem => (
-            <MenuItem key={menuItem.id} item={menuItem} />
+            <MenuItem
+              key={menuItem.id}
+              item={menuItem}
+              restaurant={item}
+              navigation={navigation}
+            />
           ))}
         </View>
       </ScrollView>
@@ -179,6 +203,7 @@ const HomeScreen = ({navigation}) => {
     navigation.navigate('Notification');
   };
 
+  // Di dalam HomeScreen
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -193,9 +218,12 @@ const HomeScreen = ({navigation}) => {
 
       <FlatList
         data={restaurantData}
-        renderItem={({item}) => <RestaurantCard item={item} />}
+        renderItem={({item}) => (
+          <RestaurantCard item={item} navigation={navigation} />
+        )}
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.restaurantList}
       />
 
       <View style={styles.bottomNavigation}>
@@ -353,7 +381,9 @@ const styles = StyleSheet.create({
     borderTopColor: '#EEEEEE',
   },
   navItem: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navIcon: {
     width: 24,

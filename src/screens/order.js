@@ -78,7 +78,6 @@ const OrderItem = ({item}) => {
 };
 
 const OrderScreen = ({navigation}) => {
-  
   const handleHome = () => {
     // Implementasi logika home
     console.log('Home button berhasil');
@@ -309,7 +308,9 @@ const styles = StyleSheet.create({
     borderTopColor: '#EEEEEE',
   },
   navItem: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navIcon: {
     width: 24,
