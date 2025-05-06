@@ -6,11 +6,15 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  Image,
   StatusBar,
 } from 'react-native';
 import fonts from '../constants/styles';
 
 const NotificationScreen = ({navigation}) => {
+  const handleBack = () => {
+    navigation.goBack();
+  };
   // Data notifikasi contoh
   const notifications = [
     {
@@ -75,12 +79,13 @@ const NotificationScreen = ({navigation}) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Image
+            source={require('../../assets/back.png')}
+            style={styles.backButtonIcon}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifikasi</Text>
+        <Text style={styles.headerTitle}>Detail Profil dan Alamat</Text>
       </View>
 
       {/* Daftar Notifikasi */}
@@ -121,10 +126,11 @@ const styles = StyleSheet.create({
   backButton: {
     marginRight: 15,
   },
-  backButtonText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
+  backButtonIcon: {
+    width: 12,
+    height: 24,
+    marginBottom: 5,
+    tintColor: 'white',
   },
   headerTitle: {
     color: 'white',

@@ -114,7 +114,6 @@ const OrderScreen = ({navigation}) => {
           />
         </TouchableOpacity>
       </View>
-
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {tabs.map(tab => (
@@ -137,6 +136,7 @@ const OrderScreen = ({navigation}) => {
           ))}
         </ScrollView>
       </View>
+
 
       <FlatList
         data={orderData}
@@ -201,18 +201,22 @@ const styles = StyleSheet.create({
     fontFamily: fonts.poppinsBold,
   },
   notificationIcon: {
-    width: 24,
+    width: 20,
     height: 24,
+    marginBottom: 5,
     tintColor: 'white',
   },
   tabContainer: {
     backgroundColor: '#FF6B35',
     marginTop: -20,
     paddingTop: 10,
-    paddingBottom: 15,
+    // paddingBottom: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingLeft: 15,
   },
   tabItem: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     position: 'relative',
   },
@@ -230,9 +234,10 @@ const styles = StyleSheet.create({
   activeIndicator: {
     position: 'absolute',
     bottom: 0,
-    left: 15,
-    right: 15,
-    height: 3,
+    left: 10,
+    right: 10,
+    marginBottom: 1,
+    height: 4,
     backgroundColor: 'white',
     borderRadius: 3,
   },

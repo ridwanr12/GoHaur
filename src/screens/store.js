@@ -631,15 +631,15 @@ const styles = StyleSheet.create({
 
 export default StoreScreen;
 
-// Tambahkan tombol test di bagian bawah layar
-<TouchableOpacity
-  style={[styles.cartButton, {bottom: 80, backgroundColor: 'green'}]}
-  onPress={() => {
-    if (typeof setModalVisible === 'function') {
-      setModalVisible(true);
-    } else {
-      console.warn('setModalVisible is not defined');
-    }
-  }}>
-  <Text style={styles.cartButtonText}>Test Modal</Text>
-</TouchableOpacity>;
+// // Tambahkan tombol test di bagian bawah layar
+// <TouchableOpacity
+//   style={[styles.cartButton, {bottom: 80, backgroundColor: 'green'}]}
+//   onPress={() => {
+//     if (typeof setModalVisible === 'function') {
+//       setModalVisible(true);
+//     } else {
+//       console.warn('setModalVisible is not defined');
+//     }
+//   }}>
+//   <Text style={styles.cartButtonText}>Test Modal</Text>
+// </TouchableOpacity>;

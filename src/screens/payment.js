@@ -17,7 +17,7 @@ const PaymentScreen = ({navigation, route}) => {
   const [paymentProof, setPaymentProof] = useState(null);
 
   // Data pesanan dari halaman sebelumnya atau data default
-  const orderData = route.params?.orderData || {
+  const defaultOrderData = {
     vendor: {
       id: '1',
       name: 'Sate Joko Khas Haur Pancuh',
@@ -44,6 +44,22 @@ const PaymentScreen = ({navigation, route}) => {
     ],
     deliveryFee: 10000,
     serviceFee: 2000,
+  };
+
+  const [orderData, setOrderData] = useState(
+    route.params?.orderData || defaultOrderData,
+  );
+
+  // Fungsi untuk mengubah note pada item
+  const handleNoteChange = (id, newNote) => {
+    const updatedItems = orderData.items.map(item => {
+      if (item.id === id) {
+        return {...item, note: newNote};
+      }
+      return item;
+    });
+
+    setOrderData({...orderData, items: updatedItems});
   };
 
   // Menghitung total harga produk
@@ -93,7 +109,7 @@ const PaymentScreen = ({navigation, route}) => {
   const handleOrder = () => {
     // Implementasi logika pesanan
     console.log('Order placed successfully');
-    navigation.navigate('OrderSuccess');
+    navigation.navigate('Order');
   };
 
   return (
@@ -155,7 +171,13 @@ const PaymentScreen = ({navigation, route}) => {
                 <View style={styles.noteContainer}>
                   <Text style={styles.noteLabel}>Note: </Text>
                   <View style={styles.noteInputContainer}>
-                    <Text style={styles.noteText}>{item.note}</Text>
+                    <TextInput
+                      style={styles.noteInput}
+                      value={item.note}
+                      onChangeText={text => handleNoteChange(item.id, text)}
+                      placeholder="Tambahkan catatan"
+                      placeholderTextColor="#AAAAAA"
+                    />
                   </View>
                 </View>
               </View>
@@ -394,24 +416,29 @@ const styles = StyleSheet.create({
   noteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 5,
   },
   noteLabel: {
     fontSize: 12,
     fontFamily: fonts.poppinsMedium,
     color: '#000',
+    marginRight: 5,
   },
   noteInputContainer: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
-    borderRadius: 15,
+    borderColor: '#E0E0E0',
+    borderRadius: 20,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    height: 35,
+    justifyContent: 'center',
   },
-  noteText: {
+  noteInput: {
     fontSize: 12,
     fontFamily: fonts.poppinsRegular,
     color: '#666',
+    padding: 0,
+    height: 30,
   },
   priceQuantityContainer: {
     width: 120,

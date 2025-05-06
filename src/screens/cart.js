@@ -289,8 +289,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.poppinsBold,
   },
   notificationIcon: {
-    width: 24,
+    width: 20,
     height: 24,
+    marginBottom: 5,
     tintColor: 'white',
   },
   addressContainer: {
