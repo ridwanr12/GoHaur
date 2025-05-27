@@ -27,7 +27,7 @@ const StoreScreen = ({navigation, route}) => {
   const [products] = useState([
     {
       id: 1,
-      name: 'Iga Bakar Haur',
+      name: 'Iga Bakar 1',
       price: 45000,
       sold: 143,
       image: require('../../assets/food1.png'),
@@ -36,7 +36,7 @@ const StoreScreen = ({navigation, route}) => {
     },
     {
       id: 2,
-      name: 'Iga Bakar Haur',
+      name: 'Iga Bakar Haur 2',
       price: 45000,
       sold: 143,
       image: require('../../assets/food1.png'),
@@ -238,9 +238,12 @@ const StoreScreen = ({navigation, route}) => {
                 {/* Modal Header */}
                 <View style={styles.modalHeader}>
                   <TouchableOpacity onPress={closeProductDetail}>
-                    <Text style={styles.modalBackButton}>{'<'}</Text>
+                    <Image
+                      source={require('../../assets/back.png')}
+                      style={styles.backButtonIcon}
+                    />
                   </TouchableOpacity>
-                  <Text style={styles.modalTitle}>Detail Toko</Text>
+                  <Text style={styles.modalTitle}>Detail Produk</Text>
                   <View style={{width: 20}} />
                 </View>
 
@@ -531,11 +534,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-  },
-  modalBackButton: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   modalTitle: {
     color: 'white',

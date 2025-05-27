@@ -8,23 +8,153 @@ import {
   Image,
   ScrollView,
   SafeAreaView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
+import {authService} from '../api';
 
 const SignupScreen = ({navigation}) => {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(''); // Tambahkan state untuk deskripsi toko
+  const [plateNumber, setPlateNumber] = useState(''); // Tambahkan state untuk nomor plat
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [location, setLocation] = useState(''); // Tambahkan state untuk location
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSignup = () => {
-    // Implementasi logika pendaftaran
-    console.log('Pendaftaran berhasil');
-    navigation.navigate('Home');
+  // Fungsi untuk memilih role
+  const selectRole = selectedRole => {
+    setRole(selectedRole);
+    // Reset field yang tidak relevan berdasarkan role
+    if (selectedRole === 'seller') {
+      setPlateNumber('');
+    } else if (selectedRole === 'courier') {
+      setDescription('');
+    } else {
+      setDescription('');
+      setPlateNumber('');
+    }
   };
+
+  // Validasi form
+  const validateForm = () => {
+    const baseRequiredFields =
+      !fullName ||
+      !email ||
+      !phoneNumber ||
+      !password ||
+      !confirmPassword ||
+      !role ||
+      !location;
+
+    // Tambahkan validasi khusus berdasarkan role
+    if (baseRequiredFields) {
+      setError('Semua field harus diisi');
+      return false;
+    }
+
+    // Validasi field khusus berdasarkan role
+    if (role === 'seller' && !description) {
+      setError('Deskripsi toko harus diisi');
+      return false;
+    }
+
+    if (role === 'courier' && !plateNumber) {
+      setError('Nomor plat kendaraan harus diisi');
+      return false;
+    }
+
+    // Validasi field email
+    if (!email) {
+      setError('Email harus diisi');
+      return false;
+    }
+
+    // Validasi email sederhana
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Format email tidak valid. Format yang benar: xxx@xxx.xxx');
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Password dan konfirmasi password tidak cocok');
+      return false;
+    }
+
+    // Validasi nomor telepon (minimal 10 digit)
+    const phoneRegex = /^[0-9]{10,}$/;
+    const cleanPhone = phoneNumber.replace(/\s+/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      setError('Nomor telepon tidak valid (minimal 10 digit)');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignup = async () => {
+    // Reset error
+    setError('');
+
+    // Validasi form
+    if (!validateForm()) {
+      Alert.alert('Error', error);
+      return;
+    }
+
+    // Siapkan data untuk register
+    const userData = {
+      username: fullName,
+      email: email,
+      password: password,
+      role: role,
+      phone: phoneNumber,
+      location: location || 'string',
+    };
+
+    console.log('Data yang dikirim:', userData); // Tambahkan log ini
+
+    // Tambahkan field tambahan berdasarkan role
+    if (role === 'seller') {
+      userData.description = description;
+    } else if (role === 'courier') {
+      userData.plateNumber = plateNumber;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await authService.register(userData);
+      console.log('Register berhasil:', response);
+
+      Alert.alert(
+        'Pendaftaran Berhasil',
+        'Akun Anda telah berhasil dibuat. Silakan login.',
+        [{text: 'OK', onPress: () => navigation.navigate('Signin')}],
+      );
+    } catch (error) {
+      console.error('Register gagal:', error.message);
+      Alert.alert(
+        'Pendaftaran Gagal',
+        error.message || 'Terjadi kesalahan saat mendaftar',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Dropdown options untuk role
+  const [showRoleOptions, setShowRoleOptions] = useState(false);
+  const roleOptions = [
+    {id: 'buyer', label: 'Pembeli'},
+    {id: 'seller', label: 'Penjual'},
+    {id: 'courier', label: 'Kurir'},
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,6 +169,8 @@ const SignupScreen = ({navigation}) => {
 
         <Text style={styles.title}>Daftar Akun</Text>
 
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         <View style={styles.formContainer}>
           <Text style={styles.label}>Nama Lengkap / Nama Toko</Text>
           <TextInput
@@ -50,23 +182,63 @@ const SignupScreen = ({navigation}) => {
           />
 
           <Text style={styles.label}>Role</Text>
-          <TouchableOpacity style={styles.dropdown}>
-            <Text style={styles.dropdownText}>Pilih Role</Text>
+          <TouchableOpacity
+            style={styles.dropdown}
+            onPress={() => setShowRoleOptions(!showRoleOptions)}>
+            <Text
+              style={role ? styles.dropdownTextSelected : styles.dropdownText}>
+              {role
+                ? roleOptions.find(option => option.id === role)?.label
+                : 'Pilih Role'}
+            </Text>
             <Text style={styles.dropdownIcon}>▼</Text>
           </TouchableOpacity>
+          {showRoleOptions && (
+            <View style={styles.optionsContainer}>
+              {roleOptions.map(option => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={styles.optionItem}
+                  onPress={() => {
+                    selectRole(option.id);
+                    setShowRoleOptions(false);
+                  }}>
+                  <Text style={styles.optionText}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           <Text style={styles.note}>
             Catatan: Setelah terdaftar role tidak bisa diubah
           </Text>
 
-          <Text style={styles.label}>Deskripsi Toko</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Masukkan deskripsi toko mu"
-            placeholderTextColor="#AAAAAA"
-            value={description}
-            onChangeText={setDescription}
-          />
+          {/* Field Deskripsi Toko hanya untuk role seller */}
+          {role === 'seller' && (
+            <>
+              <Text style={styles.label}>Deskripsi Toko</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Masukkan deskripsi toko mu"
+                placeholderTextColor="#AAAAAA"
+                value={description}
+                onChangeText={setDescription}
+              />
+            </>
+          )}
 
+          {/* Field Nomor Plat hanya untuk role courier */}
+          {role === 'courier' && (
+            <>
+              <Text style={styles.label}>Nomor Plat Kendaraan</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Masukkan nomor plat kendaraan"
+                placeholderTextColor="#AAAAAA"
+                value={plateNumber}
+                onChangeText={setPlateNumber}
+              />
+            </>
+          )}
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
@@ -85,6 +257,15 @@ const SignupScreen = ({navigation}) => {
             keyboardType="phone-pad"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
+          />
+
+          <Text style={styles.label}>Lokasi</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Masukkan lokasi Anda"
+            placeholderTextColor="#AAAAAA"
+            value={location}
+            onChangeText={setLocation}
           />
 
           <Text style={styles.label}>Password Baru</Text>
@@ -119,8 +300,15 @@ const SignupScreen = ({navigation}) => {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonText}>Daftar</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSignup}
+          disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Daftar</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -141,13 +329,18 @@ const styles = StyleSheet.create({
   logo: {
     width: 300,
     height: 90,
-    marginBottom: 20, // Tambahkan margin bawah untuk memberikan ruang antara logo dan teks "Daftar Akun"
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontFamily: fonts.poppinsBold,
     color: '#000',
     marginBottom: 20,
+  },
+  errorText: {
+    color: 'red',
+    fontFamily: fonts.poppinsMedium,
+    marginBottom: 10,
   },
   formContainer: {
     marginBottom: 20,
@@ -183,8 +376,29 @@ const styles = StyleSheet.create({
     color: '#AAAAAA',
     fontFamily: fonts.poppinsRegular,
   },
+  dropdownTextSelected: {
+    color: '#000',
+    fontFamily: fonts.poppinsRegular,
+  },
   dropdownIcon: {
     color: '#FF6B35',
+  },
+  optionsContainer: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: 'white',
+    zIndex: 1000,
+  },
+  optionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  optionText: {
+    fontFamily: fonts.poppinsRegular,
+    color: '#000',
   },
   note: {
     fontSize: 12,

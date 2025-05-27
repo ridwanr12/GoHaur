@@ -10,15 +10,38 @@ import {
   SafeAreaView,
 } from 'react-native';
 import fonts from '../constants/styles';
+import {authService} from '../api';
+import {Alert} from 'react-native';
 
 const SigninScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignin = () => {
-    // Implementasi logika login
-    console.log('Login berhasil');
-    navigation.navigate('Home');
+  const handleSignin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Email dan password harus diisi');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await authService.login({email, password});
+      console.log('Login berhasil:', response.data);
+
+      // Token sudah disimpan di authService
+      // Navigasi ke halaman Home
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error('Login gagal:', error.message);
+      Alert.alert(
+        'Login Gagal',
+        error.response?.data?.message || 'Terjadi kesalahan pada server',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
