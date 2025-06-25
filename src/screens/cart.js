@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,101 @@ import {
   TextInput,
   StatusBar,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
+import {profileService} from '../api';
 
 const CartScreen = ({navigation}) => {
+  // State untuk menyimpan data lokasi pengguna
+  const [userLocation, setUserLocation] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Mengubah vendors menjadi state variable
+  const [vendors, setVendors] = useState([
+    {
+      id: 0,
+      name: 'Sate Joko Khas Haur Pancuh',
+      address: 'Blok A No. 12',
+      selected: false, // Default tidak dipilih
+      items: [
+        {
+          id: 1,
+          name: 'Iga Bakar Haur',
+          price: 45000,
+          note: 'Pedes 1, sedeng 2',
+          image: require('../../assets/food1.png'),
+        },
+        {
+          id: 2,
+          name: 'Iga Bakar Haur',
+          price: 45000,
+          note: 'Pedes 1, sedeng 2',
+          image: require('../../assets/food1.png'),
+        },
+      ],
+    },
+    {
+      id: 1,
+      name: 'Sate Joko Khas Haur Pancuh',
+      address: 'Blok A No. 12',
+      selected: false, // Default tidak dipilih
+      items: [
+        {
+          id: 3,
+          name: 'Iga Bakar Haur',
+          price: 45000,
+          note: 'Pedes 1, sedeng 2',
+          image: require('../../assets/food1.png'),
+        },
+      ],
+    },
+  ]);
+
+  // Fungsi untuk mengambil data profil pengguna
+  const fetchUserProfile = async () => {
+    setIsLoading(true);
+    try {
+      const response = await profileService.getProfile();
+      console.log('Profile data received:', response.data);
+      
+      // Mengambil data lokasi dari profil pengguna
+      const userData = response.data.user;
+      setUserLocation(userData.location || 'Alamat belum diatur');
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setUserLocation('Alamat belum diatur');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Mengambil data profil saat komponen dimuat
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  // Fungsi untuk toggle pemilihan vendor
+  const toggleVendorSelection = (vendorId) => {
+    setVendors(prevVendors => 
+      prevVendors.map(vendor => 
+        vendor.id === vendorId 
+          ? {...vendor, selected: !vendor.selected} 
+          : vendor
+      )
+    );
+  };
+
+  // Fungsi untuk memeriksa apakah ada vendor yang dipilih
+  const isAnyVendorSelected = () => {
+    return vendors.some(vendor => vendor.selected);
+  };
+
+  // Fungsi untuk mendapatkan vendor yang dipilih
+  const getSelectedVendor = () => {
+    return vendors.find(vendor => vendor.selected) || {};
+  };
+
   const handleHome = () => {
     // Implementasi logika home
     console.log('Home button berhasil');
@@ -44,46 +135,6 @@ const CartScreen = ({navigation}) => {
     2: 2,
     3: 2,
   });
-
-  const vendors = [
-    {
-      id: 0,
-      name: 'Sate Joko Khas Haur Pancuh',
-      address: 'Blok A No. 12',
-      selected: true,
-      items: [
-        {
-          id: 1,
-          name: 'Iga Bakar Haur',
-          price: 45000,
-          note: 'Pedes 1, sedeng 2',
-          image: require('../../assets/food1.png'),
-        },
-        {
-          id: 2,
-          name: 'Iga Bakar Haur',
-          price: 45000,
-          note: 'Pedes 1, sedeng 2',
-          image: require('../../assets/food1.png'),
-        },
-      ],
-    },
-    {
-      id: 1,
-      name: 'Sate Joko Khas Haur Pancuh',
-      address: 'Blok A No. 12',
-      selected: false,
-      items: [
-        {
-          id: 3,
-          name: 'Iga Bakar Haur',
-          price: 45000,
-          note: 'Pedes 1, sedeng 2',
-          image: require('../../assets/food1.png'),
-        },
-      ],
-    },
-  ];
 
   const incrementQuantity = itemId => {
     setQuantities({
@@ -138,99 +189,112 @@ const CartScreen = ({navigation}) => {
       {/* Alamat */}
       <View style={styles.addressContainer}>
         <View style={styles.addressTextContainer}>
-          <Text style={styles.addressLabel}>Lokasi/ Alamat Tuju:</Text>
-          <Text style={styles.addressText}>
-            Jl. Raya Pancuh No. 21, Desa Sukamaju, Kecamatan Citarum, Kabupaten
-            Bandung, Jawa Barat 40915, Indonesia
-          </Text>
+          <Text style={styles.addressLabel}>Lokasi / Alamat Tuju:</Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FF6B35" />
+          ) : (
+            <Text style={styles.addressText}>{userLocation}</Text>
+          )}
         </View>
-        <TouchableOpacity style={styles.changeButton}>
+        <TouchableOpacity 
+          style={styles.changeButton}
+          onPress={() => navigation.navigate('ProfileDetail')}>
           <Text style={styles.changeButtonText}>Ganti</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {vendors.map((vendor, index) => (
-          <View key={vendor.id} style={styles.vendorSection}>
-            <View style={styles.vendorHeader}>
-              {vendor.selected ? (
-                <View style={styles.selectedRadio}>
-                  <View style={styles.selectedRadioInner} />
+      {/* Main Content Container */}
+      <View style={styles.mainContent}>
+        <ScrollView 
+          style={styles.content}
+          showsVerticalScrollIndicator={false}>
+          {vendors.map((vendor, index) => (
+            <View key={vendor.id} style={styles.vendorSection}>
+              <TouchableOpacity 
+                style={styles.vendorHeader} 
+                onPress={() => toggleVendorSelection(vendor.id)}
+              >
+                {vendor.selected ? (
+                  <View style={styles.selectedRadio}>
+                    <View style={styles.selectedRadioInner} />
+                  </View>
+                ) : (
+                  <View style={styles.unselectedRadio} />
+                )}
+                <Image
+                  source={require('../../assets/restaurant.png')}
+                  style={styles.vendorImage}
+                />
+                <View style={styles.vendorInfo}>
+                  <Text style={styles.vendorName}>{vendor.name}</Text>
+                  <Text style={styles.vendorAddress}>{vendor.address}</Text>
                 </View>
-              ) : (
-                <View style={styles.unselectedRadio} />
-              )}
-              <Image
-                source={require('../../assets/restaurant.png')}
-                style={styles.vendorImage}
-              />
-              <View style={styles.vendorInfo}>
-                <Text style={styles.vendorName}>{vendor.name}</Text>
-                <Text style={styles.vendorAddress}>{vendor.address}</Text>
-              </View>
-            </View>
+              </TouchableOpacity>
 
-            {vendor.items.map(item => (
-              <View key={item.id} style={styles.foodItem}>
-                <Image source={item.image} style={styles.foodImage} />
-                <View style={styles.foodDetails}>
-                  <Text style={styles.foodName}>{item.name}</Text>
-                  <Text style={styles.foodPrice}>
-                    Rp {item.price.toLocaleString('id-ID')}/ Item
-                  </Text>
-                  <View style={styles.noteContainer}>
-                    <Text style={styles.noteLabel}>Note: </Text>
-                    <View style={styles.noteInputContainer}>
-                      <TextInput style={styles.noteText}>{item.note}</TextInput>
+              {vendor.items.map(item => (
+                <View key={item.id} style={styles.foodItem}>
+                  <Image source={item.image} style={styles.foodImage} />
+                  <View style={styles.foodDetails}>
+                    <Text style={styles.foodName}>{item.name}</Text>
+                    <Text style={styles.foodPrice}>
+                      Rp {item.price.toLocaleString('id-ID')}/ Item
+                    </Text>
+                    <View style={styles.noteContainer}>
+                      <Text style={styles.noteLabel}>Note: </Text>
+                      <View style={styles.noteInputContainer}>
+                        <TextInput style={styles.noteText}>{item.note}</TextInput>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.priceQuantityContainer}>
+                    <Text style={styles.totalPrice}>
+                      Total : Rp{' '}
+                      {(item.price * quantities[item.id]).toLocaleString('id-ID')}
+                    </Text>
+                    <View style={styles.quantityControls}>
+                      <TouchableOpacity
+                        style={styles.quantityButton}
+                        onPress={() => decrementQuantity(item.id)}>
+                        <Text style={styles.quantityButtonText}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.quantityText}>
+                        {quantities[item.id]}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.quantityButton}
+                        onPress={() => incrementQuantity(item.id)}>
+                        <Text style={styles.quantityButtonText}>+</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
-                <View style={styles.priceQuantityContainer}>
-                  <Text style={styles.totalPrice}>
-                    Total : Rp{' '}
-                    {(item.price * quantities[item.id]).toLocaleString('id-ID')}
-                  </Text>
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity
-                      style={styles.quantityButton}
-                      onPress={() => decrementQuantity(item.id)}>
-                      <Text style={styles.quantityButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>
-                      {quantities[item.id]}
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.quantityButton}
-                      onPress={() => incrementQuantity(item.id)}>
-                      <Text style={styles.quantityButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-        ))}
-      </ScrollView>
+              ))}
+            </View>
+          ))}
+        </ScrollView>
 
-      {/* Checkout Panel */}
-      <View style={styles.checkoutPanel}>
-        <View style={styles.checkoutInfo}>
-          <Text style={styles.checkoutTitle}>Pilih dan Bayar</Text>
-          <View style={styles.checkoutDetails}>
-            <Text style={styles.vendorCheckout}>
-              Sate Joko Khas Haur Pancuh
-            </Text>
-            <Text style={styles.checkoutText}>
-              {'Total '}
-              <Text style={styles.checkoutPriceText}>
-                {formatCurrency(calculateGrandTotal())}
-              </Text>
-            </Text>
+        {/* Checkout Panel - hanya tampil jika ada vendor yang dipilih */}
+        {isAnyVendorSelected() && (
+          <View style={styles.checkoutPanel}>
+            <View style={styles.checkoutInfo}>
+              <Text style={styles.checkoutTitle}>Pilih dan Bayar</Text>
+              <View style={styles.checkoutDetails}>
+                <Text style={styles.vendorCheckout}>
+                  {getSelectedVendor().name}
+                </Text>
+                <Text style={styles.checkoutText}>
+                  {'Total '}
+                  <Text style={styles.checkoutPriceText}>
+                    {formatCurrency(calculateGrandTotal())}
+                  </Text>
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.checkoutButton} onPress={handlePayment}>
+              <Text style={styles.checkoutButtonText}>Bayar</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-        <TouchableOpacity style={styles.checkoutButton} onPress={handlePayment}>
-          <Text style={styles.checkoutButtonText}>Bayar</Text>
-        </TouchableOpacity>
+        )}
       </View>
 
       {/* Bottom Navigation */}
@@ -340,10 +404,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fonts.poppinsMedium,
   },
+  mainContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
   content: {
     flex: 1,
     paddingHorizontal: 15,
-    paddingBottom: 100, // Tambahkan padding bottom untuk memberikan ruang bagi panel checkout
+    paddingBottom: 15, // Mengurangi padding karena checkout panel tidak lagi absolute
   },
   vendorSection: {
     backgroundColor: 'white',
@@ -500,7 +569,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    // borderWidth: 1,
     borderColor: '#EEEEEE',
     borderRadius: 15,
     marginHorizontal: 15,
@@ -513,10 +581,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
-    position: 'absolute',
-    bottom: 70, // Posisi di atas bottom navigation
-    left: 0,
-    right: 0,
+    // Menghapus position: 'absolute' agar tidak menutupi konten
   },
   checkoutInfo: {
     flex: 1,

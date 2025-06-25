@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,43 +9,151 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
+import {profileService} from '../api';
+import {getUserData, getUserId} from '../utils/tokenStorage';
 
 const EditProfileScreen = ({navigation, route}) => {
-  // Data profil default atau dari route params
-  const defaultProfile = {
-    name: 'Ridwan Raditya',
-    email: 'RidwanR12@gmail.com',
-    phone: '081234324342',
-    address:
-      'Jl. Dipatiukur No. 20, Kelurahan Lebakgede, Kecamatan Coblong, Kota Bandung, Jawa Barat',
-    profileImage: require('../../assets/profilePic.png'),
+  // State untuk data profil dan loading
+  const [profile, setProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fungsi untuk mengambil data profil
+  const fetchProfileData = async () => {
+    setIsLoading(true);
+    try {
+      const userId = await getUserId();
+      console.log('Attempting to fetch profile with user ID:', userId);
+
+      const response = await profileService.getProfile();
+      console.log('Profile data received:', response.data);
+
+      // Menyesuaikan format data dari API ke format yang digunakan di form
+      const userData = response.data.user;
+      setProfile({
+        name: userData.username || '',
+        email: userData.email || '',
+        phone: userData.phone || '',
+        location: userData.location || '',
+        profileImage: userData.profileImage
+          ? {uri: userData.profileImage}
+          : require('../../assets/profilePic.png'),
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      let errorMessage = 'Gagal mengambil data profil. Silakan coba lagi.';
+
+      if (error.message === 'User ID tidak ditemukan') {
+        errorMessage = 'ID pengguna tidak ditemukan. Silakan login kembali.';
+      } else if (error.response) {
+        errorMessage = `Error ${error.response.status}: ${
+          error.response.statusText || 'Terjadi kesalahan pada server'
+        }`;
+      }
+
+      Alert.alert('Error', errorMessage);
+
+      // Jika error 401 (Unauthorized) atau error ID tidak ditemukan, arahkan ke halaman login
+      if (
+        (error.response && error.response.status === 401) ||
+        error.message === 'User ID tidak ditemukan'
+      ) {
+        navigation.navigate('Signin');
+      } else {
+        navigation.goBack();
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const [profile, setProfile] = useState(
-    route.params?.profile || defaultProfile,
-  );
+  // Mengambil data profil saat komponen dimuat
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
 
   const handleBack = () => {
     navigation.goBack();
   };
 
-  const handleSave = () => {
-    // Implementasi logika penyimpanan profil
-    console.log('Profil disimpan:', profile);
-    navigation.goBack();
+  const handleSave = async () => {
+    // Validasi data profil
+    if (!profile.name || !profile.email || !profile.phone) {
+      Alert.alert('Error', 'Nama, email, dan nomor telepon harus diisi');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Menyiapkan data untuk dikirim ke API
+      const profileData = {
+        username: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        location: profile.location, // Menggunakan location sebagai location untuk API
+        // Jika ada perubahan gambar profil, tambahkan di sini
+      };
+
+      // Memanggil API untuk update profil
+      const response = await profileService.updateProfile(profileData);
+      console.log('Profile updated:', response.data);
+
+      Alert.alert('Sukses', 'Profil berhasil diperbarui', [
+        {text: 'OK', onPress: () => navigation.goBack()},
+      ]);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      let errorMessage = 'Gagal memperbarui profil. Silakan coba lagi.';
+
+      if (error.message === 'User ID tidak ditemukan') {
+        errorMessage = 'ID pengguna tidak ditemukan. Silakan login kembali.';
+      } else if (error.response) {
+        errorMessage = `Error ${error.response.status}: ${
+          error.response.statusText || 'Terjadi kesalahan pada server'
+        }`;
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleEditAddress = () => {
+  const handleEditlocation = () => {
     // Navigasi ke halaman edit alamat
-    navigation.navigate('EditAddress', {address: profile.address});
+    navigation.navigate('Editlocation', {location: profile.location});
   };
 
   const handleChangePassword = () => {
     // Navigasi ke halaman ubah password
     navigation.navigate('ChangePassword');
   };
+
+  // Tampilkan loading spinner saat data sedang diambil
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Memuat data profil...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Jika data profil belum tersedia, tampilkan pesan
+  if (!profile) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.errorText}>Data profil tidak tersedia</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchProfileData}>
+          <Text style={styles.retryButtonText}>Coba Lagi</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -92,22 +200,15 @@ const EditProfileScreen = ({navigation, route}) => {
             keyboardType="phone-pad"
             onChangeText={text => setProfile({...profile, phone: text})}
           />
-        </View>
 
-        {/* Address Section */}
-        <View style={styles.addressSection}>
-          <View style={styles.addressHeader}>
-            <Text style={styles.addressTitle}>Alamat Kirim</Text>
-            <TouchableOpacity onPress={handleEditAddress}>
-              <Image
-                source={require('../../assets/editProfile.png')}
-                style={styles.editIcon}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.addressContent}>
-            <Text style={styles.addressText}>{profile.address}</Text>
-          </View>
+          <Text style={styles.label}>Alamat Kirim</Text>
+          <TextInput
+            style={styles.inputlocation}
+            value={profile.location}
+            multiline={true}
+            numberOfLines={3}
+            onChangeText={text => setProfile({...profile, location: text})}
+          />
         </View>
 
         {/* Change Password Button */}
@@ -118,8 +219,15 @@ const EditProfileScreen = ({navigation, route}) => {
         </TouchableOpacity>
 
         {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Simpan</Text>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSave}
+          disabled={isSaving}>
+          {isSaving ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.saveButtonText}>Simpan</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -189,41 +297,17 @@ const styles = StyleSheet.create({
     color: '#000',
     backgroundColor: 'white',
   },
-  addressSection: {
-    backgroundColor: '#F40',
-    borderRadius: 20,
+  inputlocation: {
+    height: 100,
     borderWidth: 1,
-    borderColor: '#f40',
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  addressTitle: {
-    color: 'white',
-    fontSize: 16,
-    fontFamily: fonts.poppinsMedium,
-  },
-  editIcon: {
-    width: 20,
-    height: 20,
-    tintColor: 'white',
-  },
-  addressContent: {
-    backgroundColor: '#fff',
-    padding: 15,
-  },
-  addressText: {
-    color: 'black',
-    fontSize: 14,
+    borderColor: '#ff6835',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    marginBottom: 15,
     fontFamily: fonts.poppinsRegular,
-    lineHeight: 20,
+    color: '#000',
+    textAlignVertical: 'top',
+    backgroundColor: 'white',
   },
   changePasswordButton: {
     backgroundColor: 'white',
@@ -250,6 +334,54 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontFamily: fonts.poppinsBold,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: fonts.poppinsRegular,
+    color: '#666',
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: fonts.poppinsMedium,
+    color: '#FF6B35',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF6B35',
+    borderRadius: 20,
+    padding: 15,
+    alignItems: 'center',
+    width: '50%',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: fonts.poppinsMedium,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FF6B35',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+  },
+  locationText: {
+    flex: 1,
+    color: 'white',
+    fontFamily: fonts.poppinsRegular,
+    fontSize: 16,
+  },
+  editIcon: {
+    width: 20,
+    height: 20,
+    tintColor: 'white',
   },
 });
 
