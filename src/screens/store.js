@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import productService from '../api/services/productService';
+import {useCart} from '../context/CartContext';
 
 const StoreScreen = ({navigation, route}) => {
   const storeData = route.params?.storeData || {
@@ -30,6 +31,7 @@ const StoreScreen = ({navigation, route}) => {
   const [loading, setLoading] = useState(!route.params?.storeData?.Products?.length);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const {addToCart} = useCart();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -70,8 +72,10 @@ const StoreScreen = ({navigation, route}) => {
     navigation.goBack();
   };
 
-  const handleAddToCart = productId => {
-    console.log('Produk ditambahkan ke keranjang:', productId);
+  const handleAddToCart = product => {
+    // Add to cart default 1 item
+    addToCart(storeData, product, 1);
+    console.log('Produk ditambahkan ke keranjang:', product.id);
   };
 
   const handleViewReview = () => {
@@ -176,7 +180,7 @@ const StoreScreen = ({navigation, route}) => {
                   </View>
                   <TouchableOpacity
                     style={styles.addButton}
-                    onPress={() => handleAddToCart(product.id)}>
+                    onPress={() => handleAddToCart(product)}>
                     <Text style={styles.addButtonText}>+</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>

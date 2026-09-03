@@ -12,49 +12,39 @@ import {
 import fonts from '../constants/styles';
 
 const CurrentOrderScreen = ({navigation, route}) => {
-  // Data pesanan dari halaman sebelumnya atau data default
-  const orderData = route.params?.orderData || {
-    id: '1',
-    status: 'Menunggu Diproses',
-    buyer: 'RidwanR12',
-    address:
-      'Jl. Raya Pancuh No. 21, Desa Sukamaju, Kecamatan Citarum, Kabupaten Bandung, Jawa Barat 40915, Indonesia',
-    items: [
-      {
-        id: '1',
-        name: 'Iga Bakar Haur',
-        price: 45000,
-        quantity: 2,
-        note: 'Pedas 1, sedang 2',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '2',
-        name: 'Iga Bakar Haur',
-        price: 45000,
-        quantity: 2,
-        note: 'Pedas 1, sedang 2',
-        image: require('../../assets/food1.png'),
-      },
-    ],
-    deliveryFee: 10000,
-    serviceFee: 2000,
-    paymentProof: require('../../assets/paymentSample.png'),
-  };
+  const orderData = route.params?.orderData;
+
+  // Jika tidak ada data order, tampilkan pesan kosong
+  if (!orderData) {
+    return (
+      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>Pesanan tidak ditemukan.</Text>
+        <TouchableOpacity style={{marginTop: 20, padding: 10, backgroundColor: '#FF6B35', borderRadius: 10}} onPress={() => navigation.goBack()}>
+          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>Kembali</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // Format data item dari response backend yang bentuknya order_items
+  const items = orderData.order_items || [];
+  const address = orderData.shipping_address || orderData.User?.location || 'Alamat tidak diketahui';
+  const status = orderData.status || 'Menunggu Diproses';
+  const buyer = orderData.User?.name || 'Pembeli';
+  const deliveryFee = orderData.shipping_cost || 0;
+  const serviceFee = 2000; // Contoh statis, jika backend belum menyediakan
 
   // Menghitung total harga produk
   const calculateProductTotal = () => {
-    return orderData.items.reduce(
-      (total, item) => total + item.price * item.quantity,
+    return items.reduce(
+      (total, item) => total + (item.price * item.quantity),
       0,
     );
   };
 
   // Menghitung total keseluruhan
   const calculateGrandTotal = () => {
-    return (
-      calculateProductTotal() + orderData.deliveryFee + orderData.serviceFee
-    );
+    return orderData.total_amount || (calculateProductTotal() + deliveryFee + serviceFee);
   };
 
   // Format currency
@@ -85,30 +75,30 @@ const CurrentOrderScreen = ({navigation, route}) => {
         {/* Address Section */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionLabel}>Lokasi/ Alamat Tuju:</Text>
-          <Text style={styles.addressText}>{orderData.address}</Text>
+          <Text style={styles.addressText}>{address}</Text>
         </View>
 
         {/* Status Section */}
         <View style={styles.statusContainer}>
           <Text style={styles.statusLabel}>Status:</Text>
-          <Text style={styles.statusValue}>{orderData.status}</Text>
+          <Text style={styles.statusValue}>{status}</Text>
         </View>
 
         {/* Buyer Info */}
         <View style={styles.buyerContainer}>
           <Text style={styles.buyerLabel}>Nama Pembeli:</Text>
-          <Text style={styles.buyerValue}>{orderData.buyer}</Text>
+          <Text style={styles.buyerValue}>{buyer}</Text>
         </View>
 
         {/* Order Items */}
-        {orderData.items.map((item, index) => (
+        {items.map((item, index) => (
           <View key={item.id} style={styles.itemContainer}>
             <View style={styles.itemHeader}>
-              <Image source={item.image} style={styles.itemImage} />
+              <Image source={item.Product?.images?.[0] ? {uri: item.Product.images[0]} : require('../../assets/food1.png')} style={styles.itemImage} />
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemName}>{item.Product?.name || 'Produk'}</Text>
                 <Text style={styles.itemPrice}>
-                  Rp {item.price.toLocaleString('id-ID')}/ Item
+                  Rp {(item.price || 0).toLocaleString('id-ID')}/ Item
                 </Text>
               </View>
               <View style={styles.itemTotal}>
@@ -144,13 +134,13 @@ const CurrentOrderScreen = ({navigation, route}) => {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Ongkos Kirim</Text>
             <Text style={styles.summaryValue}>
-              {formatCurrency(orderData.deliveryFee)}
+              {formatCurrency(deliveryFee)}
             </Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Biaya Pengemasan</Text>
             <Text style={styles.summaryValue}>
-              {formatCurrency(orderData.serviceFee)}
+              {formatCurrency(serviceFee)}
             </Text>
           </View>
           <View style={[styles.summaryRow, styles.totalRow]}>
@@ -161,11 +151,13 @@ const CurrentOrderScreen = ({navigation, route}) => {
           </View>
         </View>
 
-        {/* Payment Proof */}
         <View style={styles.proofContainer}>
           <Text style={styles.proofTitle}>Bukti Pembayaran</Text>
           <View style={styles.proofImageContainer}>
-            <Image source={orderData.paymentProof} style={styles.proofImage} />
+            <Image 
+              source={orderData.payment_proof ? {uri: orderData.payment_proof} : require('../../assets/paymentSample.png')} 
+              style={styles.proofImage} 
+            />
           </View>
         </View>
       </ScrollView>

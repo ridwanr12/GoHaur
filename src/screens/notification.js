@@ -15,63 +15,8 @@ const NotificationScreen = ({navigation}) => {
   const handleBack = () => {
     navigation.goBack();
   };
-  // Data notifikasi contoh
-  const notifications = [
-    {
-      id: 1,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 2,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 3,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 4,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 5,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 6,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 7,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 8,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-    {
-      id: 9,
-      title: 'Sate Joko Khas Haur Pancuh',
-      message: 'Pesanan Anda sedang dalam perjalanan',
-      date: '21 Februari 2024',
-    },
-  ];
+  // Belum ada integrasi API notifikasi
+  const notifications = [];
 
   return (
     <View style={styles.container}>
@@ -85,25 +30,31 @@ const NotificationScreen = ({navigation}) => {
             style={styles.backButtonIcon}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detail Profil dan Alamat</Text>
+        <Text style={styles.headerTitle}>Notifikasi</Text>
       </View>
 
       {/* Daftar Notifikasi */}
-      <ScrollView
-        style={styles.notificationList}
-        showsVerticalScrollIndicator={false}>
-        {notifications.map(notification => (
-          <View key={notification.id} style={styles.notificationItem}>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>{notification.title}</Text>
-              <Text style={styles.notificationDate}>{notification.date}</Text>
+      {notifications.length === 0 ? (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text style={{fontFamily: fonts.poppinsMedium, color: '#666'}}>Belum ada notifikasi</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.notificationList}
+          showsVerticalScrollIndicator={false}>
+          {notifications.map(notification => (
+            <View key={notification.id} style={styles.notificationItem}>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>{notification.title}</Text>
+                <Text style={styles.notificationDate}>{notification.date}</Text>
+              </View>
+              <Text style={styles.notificationMessage}>
+                {notification.message}
+              </Text>
             </View>
-            <Text style={styles.notificationMessage}>
-              {notification.message}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 };

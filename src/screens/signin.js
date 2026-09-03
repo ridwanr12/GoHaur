@@ -8,15 +8,17 @@ import {
   Image,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
-import {authService} from '../api';
+import {useAuth} from '../context/AuthContext';
 import {Alert} from 'react-native';
 
 const SigninScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth(); // Ambil fungsi login dari AuthContext
 
   const handleSignin = async () => {
     if (!email || !password) {
@@ -27,12 +29,15 @@ const SigninScreen = ({navigation}) => {
     setIsLoading(true);
 
     try {
-      const response = await authService.login({email, password});
+      // Panggil fungsi login dari AuthContext, bukan authService langsung.
+      // Ini akan memperbarui state global (user, token) sehingga RootNavigator 
+      // secara otomatis akan memindahkan kita ke halaman (Navigator) yang tepat.
+      const response = await login({email, password});
       console.log('Login berhasil:', response.data);
 
-      // Token sudah disimpan di authService
-      // Navigasi ke halaman Home
-      navigation.navigate('Home');
+      // Tidak perlu navigation.navigate('Home') karena RootNavigator akan merender ulang 
+      // dan langsung menampilkan BuyerNavigator (yang layar pertamanya adalah Home) 
+      // berdasarkan state token yang sudah terisi.
     } catch (error) {
       console.error('Login gagal:', error.message);
       Alert.alert(

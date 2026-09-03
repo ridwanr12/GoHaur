@@ -14,57 +14,36 @@ import fonts from '../constants/styles';
 // import {launchImageLibrary} from 'react-native-image-picker';
 
 const PaymentScreen = ({navigation, route}) => {
+  const orderData = route.params?.orderData;
+
+  if (!orderData) {
+    return (
+      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>Pesanan tidak ditemukan.</Text>
+        <TouchableOpacity style={{marginTop: 20, padding: 10, backgroundColor: '#FF6B35', borderRadius: 10}} onPress={() => navigation.goBack()}>
+          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>Kembali</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   const [paymentProof, setPaymentProof] = useState(null);
-
-  // Data pesanan dari halaman sebelumnya atau data default
-  const defaultOrderData = {
-    vendor: {
-      id: '1',
-      name: 'Sate Joko Khas Haur Pancuh',
-      location: 'Blok A No. 12',
-      image: require('../../assets/restaurant.png'),
-    },
-    items: [
-      {
-        id: '1',
-        name: 'Iga Bakar Haur',
-        price: 45000,
-        quantity: 2,
-        note: 'Pedas 1, sedang 2',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '2',
-        name: 'Iga Bakar Haur',
-        price: 45000,
-        quantity: 2,
-        note: 'Pedas 1, sedang 2',
-        image: require('../../assets/food1.png'),
-      },
-    ],
-    deliveryFee: 10000,
-    serviceFee: 2000,
+  
+  // Format items
+  const items = orderData.order_items || orderData.items || [];
+  const vendor = orderData.vendor || {
+    id: orderData.store_id || '1',
+    name: 'Restoran',
+    location: 'Alamat Restoran',
+    image: require('../../assets/restaurant.png'),
   };
+  const deliveryFee = orderData.shipping_cost || orderData.deliveryFee || 0;
+  const serviceFee = 2000;
 
-  const [orderData, setOrderData] = useState(
-    route.params?.orderData || defaultOrderData,
-  );
-
-  // Fungsi untuk mengubah note pada item
-  const handleNoteChange = (id, newNote) => {
-    const updatedItems = orderData.items.map(item => {
-      if (item.id === id) {
-        return {...item, note: newNote};
-      }
-      return item;
-    });
-
-    setOrderData({...orderData, items: updatedItems});
-  };
 
   // Menghitung total harga produk
   const calculateProductTotal = () => {
-    return orderData.items.reduce(
+    return items.reduce(
       (total, item) => total + item.price * item.quantity,
       0,
     );
@@ -73,7 +52,7 @@ const PaymentScreen = ({navigation, route}) => {
   // Menghitung total keseluruhan
   const calculateGrandTotal = () => {
     return (
-      calculateProductTotal() + orderData.deliveryFee + orderData.serviceFee
+      calculateProductTotal() + deliveryFee + serviceFee
     );
   };
 
@@ -145,39 +124,33 @@ const PaymentScreen = ({navigation, route}) => {
         {/* Vendor Section */}
         <View style={styles.vendorSection}>
           <View style={styles.vendorHeader}>
-            <Image source={orderData.vendor.image} style={styles.vendorImage} />
+            <Image source={vendor.image} style={styles.vendorImage} />
             <View style={styles.vendorInfo}>
-              <Text style={styles.vendorName}>{orderData.vendor.name}</Text>
+              <Text style={styles.vendorName}>{vendor.name}</Text>
               <Text style={styles.vendorAddress}>
-                {orderData.vendor.location}
+                {vendor.location}
               </Text>
             </View>
           </View>
 
           {/* Food Items */}
-          {orderData.items.map((item, index) => (
+          {items.map((item, index) => (
             <View
               key={item.id}
               style={[
                 styles.foodItem,
-                index === orderData.items.length - 1 && {borderBottomWidth: 0},
+                index === items.length - 1 && {borderBottomWidth: 0},
               ]}>
-              <Image source={item.image} style={styles.foodImage} />
+              <Image source={item.image || (item.Product?.images?.[0] ? {uri: item.Product.images[0]} : require('../../assets/food1.png'))} style={styles.foodImage} />
               <View style={styles.foodDetails}>
-                <Text style={styles.foodName}>{item.name}</Text>
+                <Text style={styles.foodName}>{item.name || item.Product?.name || 'Produk'}</Text>
                 <Text style={styles.foodPrice}>
                   {formatCurrency(item.price)}/ Item
                 </Text>
                 <View style={styles.noteContainer}>
                   <Text style={styles.noteLabel}>Note: </Text>
                   <View style={styles.noteInputContainer}>
-                    <TextInput
-                      style={styles.noteInput}
-                      value={item.note}
-                      onChangeText={text => handleNoteChange(item.id, text)}
-                      placeholder="Tambahkan catatan"
-                      placeholderTextColor="#AAAAAA"
-                    />
+                    <Text style={styles.noteInput}>{item.note}</Text>
                   </View>
                 </View>
               </View>
@@ -210,13 +183,13 @@ const PaymentScreen = ({navigation, route}) => {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Ongkos Kirim</Text>
             <Text style={styles.summaryValue}>
-              {formatCurrency(orderData.deliveryFee)}
+              {formatCurrency(deliveryFee)}
             </Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Biaya Pengemasan</Text>
             <Text style={styles.summaryValue}>
-              {formatCurrency(orderData.serviceFee)}
+              {formatCurrency(serviceFee)}
             </Text>
           </View>
           <View style={[styles.summaryRow, styles.totalRow]}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,75 +8,41 @@ import {
   Image,
   StatusBar,
   SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import fonts from '../constants/styles';
-
-const reviewData = [
-  {
-    id: '1',
-    name: 'Ridwan R',
-    date: '21 Februari 2024',
-    review: 'Asli ni warung enak bat kaga boong, cabainnnnn',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic.png'),
-  },
-  {
-    id: '2',
-    name: 'Ryan Bahri Harahap',
-    date: '21 Februari 2024',
-    review: 'Enak siiiii, tapi kurang garem dikit coba tambahin aja',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic2.png'),
-  },
-  {
-    id: '3',
-    name: 'Ridwan R',
-    date: '21 Februari 2024',
-    review: 'Asli ni warung enak bat kaga boong, cabainnnnn',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic.png'),
-  },
-  {
-    id: '4',
-    name: 'Ryan Bahri Harahap',
-    date: '21 Februari 2024',
-    review: 'Enak siiiii, tapi kurang garem dikit coba tambahin aja',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic2.png'),
-  },
-  {
-    id: '5',
-    name: 'Ryan Bahri Harahap',
-    date: '21 Februari 2024',
-    review: 'Enak siiiii, tapi kurang garem dikit coba tambahin aja',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic2.png'),
-  },
-  {
-    id: '6',
-    name: 'Ridwan R',
-    date: '21 Februari 2024',
-    review: 'Asli ni warung enak bat kaga boong, cabainnnnn',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic.png'),
-  },
-  {
-    id: '7',
-    name: 'Ryan Bahri Harahap',
-    date: '21 Februari 2024',
-    review: 'Enak siiiii, tapi kurang garem dikit coba tambahin aja',
-    rating: '5.0/5.0',
-    image: require('../../assets/profilePic2.png'),
-  },
-];
+import {feedbackService} from '../api';
 
 const ReviewScreen = ({navigation, route}) => {
   const storeData = route.params?.storeData || {
+    id: '1',
     name: 'Sate Joko Khas Haur Pancuh',
     location: 'Blok A No. 12',
     totalSold: '143 Item Terjual',
     rating: '4.5/5.0',
   };
+
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        if (!storeData.id) return;
+        setLoading(true);
+        const response = await feedbackService.getStoreFeedbacks(storeData.id);
+        if (response.data && response.data.feedbacks) {
+          setReviews(response.data.feedbacks);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchReviews();
+  }, [storeData.id]);
 
   const handleBack = () => {
     navigation.goBack();
@@ -125,29 +91,46 @@ const ReviewScreen = ({navigation, route}) => {
       <View style={styles.reviewsSection}>
         <Text style={styles.sectionTitle}>Semua Review</Text>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {reviewData.map(review => (
-            <View key={review.id} style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
-                <Image source={review.image} style={styles.reviewerImage} />
-                <View style={styles.reviewerInfo}>
-                  <Text style={styles.reviewerName}>{review.name}</Text>
-                  <Text style={styles.reviewText}>{review.review}</Text>
+        {loading ? (
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+             <ActivityIndicator size="large" color="#FF6B35" />
+          </View>
+        ) : reviews.length === 0 ? (
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{fontFamily: fonts.poppinsRegular, color: '#666'}}>Belum ada review untuk toko ini.</Text>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {reviews.map(review => {
+              const dateObj = new Date(review.created_at);
+              const dateStr = !isNaN(dateObj.getTime()) 
+                ? dateObj.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) 
+                : 'Tanggal tidak diketahui';
+                
+              return (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <Image source={require('../../assets/profilePic.png')} style={styles.reviewerImage} />
+                    <View style={styles.reviewerInfo}>
+                      <Text style={styles.reviewerName}>{review.User?.name || 'Anonim'}</Text>
+                      <Text style={styles.reviewText}>{review.description}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.reviewFooter}>
+                    <Text style={styles.reviewDate}>{dateStr}</Text>
+                    <View style={styles.reviewRating}>
+                      <Text style={styles.reviewRatingText}>{review.rating}.0/5.0</Text>
+                      <Image
+                        source={require('../../assets/star.png')}
+                        style={styles.reviewStarIcon}
+                      />
+                    </View>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.reviewFooter}>
-                <Text style={styles.reviewDate}>{review.date}</Text>
-                <View style={styles.reviewRating}>
-                  <Text style={styles.reviewRatingText}>{review.rating}</Text>
-                  <Image
-                    source={require('../../assets/star.png')}
-                    style={styles.reviewStarIcon}
-                  />
-                </View>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );

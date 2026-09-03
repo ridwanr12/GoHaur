@@ -10,192 +10,96 @@ import {
   StatusBar,
   SafeAreaView,
   ActivityIndicator,
+  Alert
 } from 'react-native';
 import fonts from '../constants/styles';
 import {profileService, orderService} from '../api';
+import {useCart} from '../context/CartContext';
 
-/**
- * CartScreen mengelola keranjang belanja (items) dan proses checkout.
- * Pada implementasi ini, state keranjang 'vendors' masih diatur secara lokal di state.
- * Jika ingin skalabilitas lebih baik, keranjang ini idealnya dipindah ke Context atau Redux, 
- * atau diambil dari backend secara dinamis.
- */
 const CartScreen = ({navigation}) => {
-  // State untuk menyimpan data lokasi pengguna (Alamat Kirim)
   const [userLocation, setUserLocation] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   
-  // Mengubah vendors menjadi state variable
-  const [vendors, setVendors] = useState([
-    {
-      id: 0,
-      name: 'Sate Joko Khas Haur Pancuh',
-      address: 'Blok A No. 12',
-      selected: false, // Default tidak dipilih
-      items: [
-        {
-          id: 1,
-          name: 'Iga Bakar Haur',
-          price: 45000,
-          note: 'Pedes 1, sedeng 2',
-          image: require('../../assets/food1.png'),
-        },
-        {
-          id: 2,
-          name: 'Iga Bakar Haur',
-          price: 45000,
-          note: 'Pedes 1, sedeng 2',
-          image: require('../../assets/food1.png'),
-        },
-      ],
-    },
-    {
-      id: 1,
-      name: 'Sate Joko Khas Haur Pancuh',
-      address: 'Blok A No. 12',
-      selected: false, // Default tidak dipilih
-      items: [
-        {
-          id: 3,
-          name: 'Iga Bakar Haur',
-          price: 45000,
-          note: 'Pedes 1, sedeng 2',
-          image: require('../../assets/food1.png'),
-        },
-      ],
-    },
-  ]);
+  // Ambil state dan fungsi dari CartContext
+  const {
+    cart: vendors, 
+    updateQuantity, 
+    updateNote, 
+    toggleStoreSelection, 
+    clearStoreFromCart, 
+    isLoading: isCartLoading
+  } = useCart();
 
-  // Fungsi untuk mengambil data profil pengguna
   const fetchUserProfile = async () => {
-    setIsLoading(true);
+    setIsLoadingProfile(true);
     try {
       const response = await profileService.getProfile();
-      console.log('Profile data received:', response.data);
-      
-      // Mengambil data lokasi dari profil pengguna
       const userData = response.data.user;
       setUserLocation(userData.location || 'Alamat belum diatur');
     } catch (error) {
       console.error('Error fetching profile:', error);
       setUserLocation('Alamat belum diatur');
     } finally {
-      setIsLoading(false);
+      setIsLoadingProfile(false);
     }
   };
 
-  // Mengambil data profil saat komponen dimuat
   useEffect(() => {
     fetchUserProfile();
   }, []);
 
-  // Fungsi untuk toggle pemilihan vendor
-  const toggleVendorSelection = (vendorId) => {
-    setVendors(prevVendors => 
-      prevVendors.map(vendor => 
-        vendor.id === vendorId 
-          ? {...vendor, selected: !vendor.selected} 
-          : vendor
-      )
-    );
-  };
-
-  // Fungsi untuk memeriksa apakah ada vendor yang dipilih
   const isAnyVendorSelected = () => {
     return vendors.some(vendor => vendor.selected);
   };
 
-  // Fungsi untuk mendapatkan vendor yang dipilih
   const getSelectedVendor = () => {
     return vendors.find(vendor => vendor.selected) || {};
   };
 
-  const handleHome = () => {
-    // Implementasi logika home
-    console.log('Home button berhasil');
-    navigation.navigate('Home');
-  };
-  const handleOrder = () => {
-    // Implementasi logika order
-    console.log('Order button berhasil');
-    navigation.navigate('Order');
-  };
-  const handleProfile = () => {
-    // Implementasi logika profile
-    console.log('Profile button berhasil');
-    navigation.navigate('Profile');
-  };
-  const handleNotification = () => {
-    // Implementasi logika notifikasi
-    console.log('Notification button berhasil');
-    navigation.navigate('Notification');
-  };
-  /**
-   * handlePayment dipanggil saat pengguna menekan tombol "Bayar" di bagian bawah layar.
-   * Fungsi ini akan membangun format data payload (Products) sesuai struktur yang diminta Backend,
-   * lalu memanggil orderService.createOrder().
-   */
+  const handleHome = () => navigation.navigate('Home');
+  const handleOrder = () => navigation.navigate('Order');
+  const handleProfile = () => navigation.navigate('Profile');
+  const handleNotification = () => navigation.navigate('Notification');
+
   const handlePayment = async () => {
     try {
       const selectedVendor = getSelectedVendor();
       if (!selectedVendor || Object.keys(selectedVendor).length === 0) {
-        alert('Silakan pilih pesanan terlebih dahulu');
+        Alert.alert('Peringatan', 'Silakan pilih pesanan terlebih dahulu');
         return;
       }
 
       // Menyesuaikan format JSON yang diminta oleh Backend untuk "Products"
       const products = selectedVendor.items.map(item => ({
-        product_id: item.id.toString(), // ID produk yang akan dikonversi ke UUID di backend
-        quantity: quantities[item.id] || 1, // Kuantitas pesanan
-        note: item.note || '', // Catatan khusus (jika ada)
+        product_id: item.id.toString(), 
+        quantity: item.quantity, 
+        note: item.note || '', 
       }));
 
       // Membentuk objek `orderData` utama
       const orderData = {
-        store_id: selectedVendor.id.toString(), // ID restoran (Store)
+        store_id: selectedVendor.id.toString(), 
         products: products, 
-        shipping_cost: 10000, // Hardcoded ongkir (untuk pengembangan lebih lanjut, ambil dari perhitungan kurir)
-        payment_proof: 'dummy-payment-proof.png', // Dummy resi pembayaran untuk tahap development
+        shipping_cost: 10000, 
+        payment_proof: 'dummy-payment-proof.png', 
       };
 
       // POST ke /api/orders
       await orderService.createOrder(orderData);
       
-      console.log('Pesanan berhasil dibuat');
-      // Jika berhasil, alihkan pengguna ke halaman histori Pesanan
+      // Hapus keranjang restoran yang sudah di checkout
+      clearStoreFromCart(selectedVendor.id);
+
+      Alert.alert('Sukses', 'Pesanan berhasil dibuat!');
       navigation.navigate('Order');
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Gagal membuat pesanan. Pastikan server berjalan dan auth valid.');
-    }
-  };
-
-  const [quantities, setQuantities] = useState({
-    1: 2,
-    2: 2,
-    3: 2,
-  });
-
-  const incrementQuantity = itemId => {
-    setQuantities({
-      ...quantities,
-      [itemId]: (quantities[itemId] || 0) + 1,
-    });
-  };
-
-  const decrementQuantity = itemId => {
-    if (quantities[itemId] > 1) {
-      setQuantities({
-        ...quantities,
-        [itemId]: quantities[itemId] - 1,
-      });
+      Alert.alert('Error', 'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.');
     }
   };
 
   const calculateTotal = items => {
-    return items.reduce((total, item) => {
-      return total + item.price * (quantities[item.id] || 0);
-    }, 0);
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   const calculateGrandTotal = () => {
@@ -210,6 +114,14 @@ const CartScreen = ({navigation}) => {
   const formatCurrency = amount => {
     return `Rp ${amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
   };
+
+  if (isCartLoading) {
+    return (
+      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -230,7 +142,7 @@ const CartScreen = ({navigation}) => {
       <View style={styles.addressContainer}>
         <View style={styles.addressTextContainer}>
           <Text style={styles.addressLabel}>Lokasi / Alamat Tuju:</Text>
-          {isLoading ? (
+          {isLoadingProfile ? (
             <ActivityIndicator size="small" color="#FF6B35" />
           ) : (
             <Text style={styles.addressText}>{userLocation}</Text>
@@ -245,75 +157,85 @@ const CartScreen = ({navigation}) => {
 
       {/* Main Content Container */}
       <View style={styles.mainContent}>
-        <ScrollView 
-          style={styles.content}
-          showsVerticalScrollIndicator={false}>
-          {vendors.map((vendor, index) => (
-            <View key={vendor.id} style={styles.vendorSection}>
-              <TouchableOpacity 
-                style={styles.vendorHeader} 
-                onPress={() => toggleVendorSelection(vendor.id)}
-              >
-                {vendor.selected ? (
-                  <View style={styles.selectedRadio}>
-                    <View style={styles.selectedRadioInner} />
+        {vendors.length === 0 ? (
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{fontFamily: fonts.poppinsMedium, color: '#666'}}>Keranjang masih kosong</Text>
+          </View>
+        ) : (
+          <ScrollView 
+            style={styles.content}
+            showsVerticalScrollIndicator={false}>
+            {vendors.map((vendor) => (
+              <View key={vendor.id} style={styles.vendorSection}>
+                <TouchableOpacity 
+                  style={styles.vendorHeader} 
+                  onPress={() => toggleVendorSelection(vendor.id)}
+                >
+                  {vendor.selected ? (
+                    <View style={styles.selectedRadio}>
+                      <View style={styles.selectedRadioInner} />
+                    </View>
+                  ) : (
+                    <View style={styles.unselectedRadio} />
+                  )}
+                  <Image
+                    source={require('../../assets/restaurant.png')}
+                    style={styles.vendorImage}
+                  />
+                  <View style={styles.vendorInfo}>
+                    <Text style={styles.vendorName}>{vendor.name}</Text>
+                    <Text style={styles.vendorAddress}>{vendor.address}</Text>
                   </View>
-                ) : (
-                  <View style={styles.unselectedRadio} />
-                )}
-                <Image
-                  source={require('../../assets/restaurant.png')}
-                  style={styles.vendorImage}
-                />
-                <View style={styles.vendorInfo}>
-                  <Text style={styles.vendorName}>{vendor.name}</Text>
-                  <Text style={styles.vendorAddress}>{vendor.address}</Text>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              {vendor.items.map(item => (
-                <View key={item.id} style={styles.foodItem}>
-                  <Image source={item.image} style={styles.foodImage} />
-                  <View style={styles.foodDetails}>
-                    <Text style={styles.foodName}>{item.name}</Text>
-                    <Text style={styles.foodPrice}>
-                      Rp {item.price.toLocaleString('id-ID')}/ Item
-                    </Text>
-                    <View style={styles.noteContainer}>
-                      <Text style={styles.noteLabel}>Note: </Text>
-                      <View style={styles.noteInputContainer}>
-                        <TextInput style={styles.noteText}>{item.note}</TextInput>
+                {vendor.items.map(item => (
+                  <View key={item.id} style={styles.foodItem}>
+                    <Image source={item.image} style={styles.foodImage} />
+                    <View style={styles.foodDetails}>
+                      <Text style={styles.foodName}>{item.name}</Text>
+                      <Text style={styles.foodPrice}>
+                        {formatCurrency(item.price)}/ Item
+                      </Text>
+                      <View style={styles.noteContainer}>
+                        <Text style={styles.noteLabel}>Note: </Text>
+                        <View style={styles.noteInputContainer}>
+                          <TextInput 
+                            style={styles.noteText}
+                            value={item.note}
+                            onChangeText={(text) => updateNote(vendor.id, item.id, text)}
+                            placeholder="Ketik catatan..."
+                          />
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.priceQuantityContainer}>
+                      <Text style={styles.totalPrice}>
+                        Total : {formatCurrency(item.price * item.quantity)}
+                      </Text>
+                      <View style={styles.quantityControls}>
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          onPress={() => updateQuantity(vendor.id, item.id, item.quantity - 1)}>
+                          <Text style={styles.quantityButtonText}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.quantityText}>
+                          {item.quantity}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          onPress={() => updateQuantity(vendor.id, item.id, item.quantity + 1)}>
+                          <Text style={styles.quantityButtonText}>+</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   </View>
-                  <View style={styles.priceQuantityContainer}>
-                    <Text style={styles.totalPrice}>
-                      Total : Rp{' '}
-                      {(item.price * quantities[item.id]).toLocaleString('id-ID')}
-                    </Text>
-                    <View style={styles.quantityControls}>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() => decrementQuantity(item.id)}>
-                        <Text style={styles.quantityButtonText}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.quantityText}>
-                        {quantities[item.id]}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() => incrementQuantity(item.id)}>
-                        <Text style={styles.quantityButtonText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
-        {/* Checkout Panel - hanya tampil jika ada vendor yang dipilih */}
+        {/* Checkout Panel */}
         {isAnyVendorSelected() && (
           <View style={styles.checkoutPanel}>
             <View style={styles.checkoutInfo}>
@@ -452,7 +374,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 15,
-    paddingBottom: 15, // Mengurangi padding karena checkout panel tidak lagi absolute
+    paddingBottom: 15, 
   },
   vendorSection: {
     backgroundColor: 'white',
@@ -549,7 +471,7 @@ const styles = StyleSheet.create({
   noteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '200%',
+    width: '100%',
   },
   noteLabel: {
     fontSize: 12,
@@ -563,11 +485,15 @@ const styles = StyleSheet.create({
     borderColor: '#ABABAB',
     borderRadius: 20,
     paddingHorizontal: 10,
+    justifyContent: 'center',
+    height: 35
   },
   noteText: {
     fontSize: 12,
     fontFamily: fonts.poppinsRegular,
     color: '#666',
+    padding: 0,
+    margin: 0
   },
   priceQuantityContainer: {
     width: 120,
@@ -621,7 +547,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
-    // Menghapus position: 'absolute' agar tidak menutupi konten
   },
   checkoutInfo: {
     flex: 1,

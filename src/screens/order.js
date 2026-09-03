@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,105 +8,99 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
-
-// Data dummy untuk pesanan
-const orderData = [
-  {
-    id: '1',
-    restaurant: 'Sate Joko Khas Haur Pancuh',
-    status: 'Diproses',
-    date: '21 Februari 2024',
-    total: 'Rp 250.000,00',
-    image: require('../../assets/food1.png'),
-  },
-  {
-    id: '2',
-    restaurant: 'Sate Joko Khas Haur Pancuh',
-    status: 'Diproses',
-    date: '21 Februari 2024',
-    total: 'Rp 250.000,00',
-    image: require('../../assets/food1.png'),
-  },
-  {
-    id: '3',
-    restaurant: 'Sate Joko Khas Haur Pancuh',
-    status: 'Diproses',
-    date: '21 Februari 2024',
-    total: 'Rp 250.000,00',
-    image: require('../../assets/food1.png'),
-  },
-  {
-    id: '4',
-    restaurant: 'Sate Joko Khas Haur Pancuh',
-    status: 'Diproses',
-    date: '21 Februari 2024',
-    total: 'Rp 250.000,00',
-    image: require('../../assets/food1.png'),
-  },
-  {
-    id: '5',
-    restaurant: 'Sate Joko Khas Haur Pancuh',
-    status: 'Diproses',
-    date: '21 Februari 2024',
-    total: 'Rp 250.000,00',
-    image: require('../../assets/food1.png'),
-  },
-];
+import {orderService} from '../api';
 
 // Komponen untuk menampilkan item pesanan
-const OrderItem = ({item}) => {
+const OrderItem = ({item, onPress}) => {
+  // Format total harga
+  const total = item.total_amount ? `Rp ${item.total_amount.toLocaleString('id-ID')}` : 'Rp 0';
+  
+  // Format tanggal (asumsi format ISO dari backend)
+  const dateObj = new Date(item.created_at);
+  const dateStr = !isNaN(dateObj.getTime()) 
+    ? dateObj.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) 
+    : 'Tanggal tidak diketahui';
+
   return (
-    <View style={styles.orderCard}>
+    <TouchableOpacity style={styles.orderCard} onPress={() => onPress(item)}>
       <View style={styles.orderHeader}>
         <View style={styles.statusContainer}>
-          <Text style={styles.statusText}>{item.status}</Text>
+          <Text style={styles.statusText}>{item.status || 'Diproses'}</Text>
         </View>
-        <Text style={styles.dateText}>{item.date}</Text>
+        <Text style={styles.dateText}>{dateStr}</Text>
       </View>
 
       <View style={styles.orderContent}>
-        <Image source={item.image} style={styles.orderImage} />
+        {/* Placeholder image karena API backend saat ini mungkin tidak mereturn image restoran di list order */}
+        <Image source={require('../../assets/restaurant.png')} style={styles.orderImage} />
         <View style={styles.orderInfo}>
-          <Text style={styles.restaurantName}>{item.restaurant}</Text>
-          <Text style={styles.totalText}>Total : {item.total}</Text>
+          <Text style={styles.restaurantName}>
+            {item.Store?.name || 'Restoran tidak diketahui'}
+          </Text>
+          <Text style={styles.totalText}>Total : {total}</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const OrderScreen = ({navigation}) => {
-  const handleHome = () => {
-    // Implementasi logika home
-    console.log('Home button berhasil');
-    navigation.navigate('Home');
-  };
-  const handleCart = () => {
-    // Implementasi logika cart
-    console.log('Cart button berhasil');
-    navigation.navigate('Cart');
-  };
-  const handleProfile = () => {
-    // Implementasi logika profile
-    console.log('Profile button berhasil');
-    navigation.navigate('Profile');
-  };
-  const handleNotification = () => {
-    // Implementasi logika notifikasi
-    console.log('Notification button berhasil');
-    navigation.navigate('Notification');
-  };
-
   const [activeTab, setActiveTab] = useState('Semua');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const tabs = ['Semua', 'Menunggu Diproses', 'Sedang Diproses', 'Dikirim'];
+  const tabs = ['Semua', 'Menunggu Diproses', 'Sedang Diproses', 'Dikirim', 'Selesai'];
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await orderService.getAllOrders();
+        if (response.data && response.data.orders) {
+          setOrders(response.data.orders);
+        } else if (Array.isArray(response.data)) {
+          setOrders(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Fetch everytime screen comes into focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchOrders();
+    });
+
+    fetchOrders(); // Initial fetch
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const handleHome = () => navigation.navigate('Home');
+  const handleCart = () => navigation.navigate('Cart');
+  const handleProfile = () => navigation.navigate('Profile');
+  const handleNotification = () => navigation.navigate('Notification');
+
+  const goToOrderDetail = (item) => {
+    // Arahkan ke CurrentOrder dengan membawa data asli
+    navigation.navigate('CurrentOrder', {orderData: item});
+  };
+
+  // Filter orders berdasarkan tab
+  const getFilteredOrders = () => {
+    if (activeTab === 'Semua') return orders;
+    return orders.filter(order => order.status === activeTab);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>GOHAUR</Text>
+        <Text style={styles.headerTitle}>Pesanan</Text>
         <TouchableOpacity onPress={handleNotification}>
           <Image
             source={require('../../assets/notification.png')}
@@ -114,6 +108,7 @@ const OrderScreen = ({navigation}) => {
           />
         </TouchableOpacity>
       </View>
+      
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {tabs.map(tab => (
@@ -137,14 +132,23 @@ const OrderScreen = ({navigation}) => {
         </ScrollView>
       </View>
 
-
-      <FlatList
-        data={orderData}
-        renderItem={({item}) => <OrderItem item={item} />}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.orderList}
-      />
+      {loading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#FF6B35" />
+        </View>
+      ) : getFilteredOrders().length === 0 ? (
+        <View style={styles.centerContent}>
+          <Text style={styles.emptyText}>Tidak ada pesanan</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={getFilteredOrders()}
+          renderItem={({item}) => <OrderItem item={item} onPress={goToOrderDetail} />}
+          keyExtractor={item => item.id.toString()}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.orderList}
+        />
+      )}
 
       <View style={styles.bottomNavigation}>
         <TouchableOpacity style={styles.navItem} onPress={handleHome}>
@@ -210,7 +214,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B35',
     marginTop: -20,
     paddingTop: 10,
-    // paddingBottom: 15,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingLeft: 15,
@@ -240,6 +243,16 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: 'white',
     borderRadius: 3,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: fonts.poppinsMedium,
+    color: '#666',
+    fontSize: 16,
   },
   orderList: {
     padding: 15,
@@ -289,6 +302,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 10,
     marginRight: 15,
+    resizeMode: 'cover'
   },
   orderInfo: {
     flex: 1,
