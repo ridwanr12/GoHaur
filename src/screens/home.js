@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,110 +8,18 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
+import storeService from '../api/services/storeService';
 
-// Data dummy untuk restoran
-const restaurantData = [
-  {
-    id: '1',
-    name: 'Sate Joko Khas Haur Pancuh',
-    location: 'Blok A No. 12',
-    rating: '4.5/5.0',
-    totalOrders: '143 terjual',
-    image: require('../../assets/restaurant.png'),
-    menu: [
-      {
-        id: '1',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '2',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '3',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Sate Joko Khas Haur Pancuh',
-    location: 'Blok A No. 12',
-    rating: '4.5/5.0',
-    totalOrders: '143 terjual',
-    image: require('../../assets/restaurant.png'),
-    menu: [
-      {
-        id: '1',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '2',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '3',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-    ],
-  },
-  {
-    id: '3',
-    name: 'Sate Joko Khas Haur Pancuh',
-    location: 'Blok A No. 12',
-    rating: '4.5/5.0',
-    totalOrders: '143 terjual',
-    image: require('../../assets/restaurant.png'),
-    menu: [
-      {
-        id: '1',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '2',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-      {
-        id: '3',
-        name: 'Iga Bakar Haur',
-        price: 'Rp 45.000',
-        sold: '143 terjual',
-        image: require('../../assets/food1.png'),
-      },
-    ],
-  },
-];
+/**
+ * HomeScreen adalah halaman pertama yang dilihat pembeli setelah login.
+ * Halaman ini akan mengambil data daftar restoran (store) dari backend API.
+ */
 
-// Komponen untuk menampilkan menu item
 const MenuItem = ({item, restaurant, navigation}) => {
   const handleProductPress = () => {
-    console.log('Product pressed:', item.name);
     navigation.navigate('Store', {
       storeData: restaurant,
       selectedProductId: item.id,
@@ -119,43 +27,52 @@ const MenuItem = ({item, restaurant, navigation}) => {
     });
   };
 
+  const imageSource = item.images && item.images.length > 0
+    ? {uri: item.images[0]}
+    : require('../../assets/food1.png');
+
   return (
     <TouchableOpacity onPress={handleProductPress}>
       <View style={styles.menuItem}>
-        <Image source={item.image} style={styles.menuImage} />
-        <Text style={styles.menuName}>{item.name}</Text>
+        <Image source={imageSource} style={styles.menuImage} />
+        <Text style={styles.menuName} numberOfLines={1}>{item.name}</Text>
         <View style={styles.menuPriceContainer}>
-          <Text style={styles.menuPrice}>{item.price}</Text>
-          <Text style={styles.menuSold}>{item.sold}</Text>
+          <Text style={styles.menuPrice}>Rp {item.price}</Text>
+          <Text style={styles.menuSold}>{item.stock} stok</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 };
 
+
 // Komponen untuk menampilkan restoran
 const RestaurantCard = ({item, navigation}) => {
   const handleRestaurant = () => {
-    // Implementasi logika profile
-    console.log('Toko button berhasil');
-    navigation.navigate('Store', {storeData: item}); // Ubah ke Store dan kirim data item
+    navigation.navigate('Store', {storeData: item});
   };
+
+  const ratingObj = item.Ratings && item.Ratings.length > 0 ? item.Ratings[0] : { average_rating: 0, amount: 0 };
+  const ratingText = ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
+  const totalOrdersText = ratingObj.amount > 0 ? `${ratingObj.amount} ulasan` : '0 ulasan';
+  
+  const menuList = item.Products || [];
 
   return (
     <View style={styles.restaurantCard}>
       <TouchableOpacity onPress={handleRestaurant}>
         <View style={styles.restaurantHeader}>
           <View style={styles.restaurantInfo}>
-            <Image source={item.image} style={styles.restaurantImage} />
+            <Image source={require('../../assets/restaurant.png')} style={styles.restaurantImage} />
             <View>
               <Text style={styles.restaurantName}>{item.name}</Text>
-              <Text style={styles.restaurantLocation}>{item.location}</Text>
+              <Text style={styles.restaurantLocation}>{item.description || 'Deskripsi toko'}</Text>
             </View>
           </View>
           <View style={styles.ratingContainer}>
-            <Text style={styles.totalOrders}>{item.totalOrders}</Text>
+            <Text style={styles.totalOrders}>{totalOrdersText}</Text>
             <View style={styles.ratingWrapper}>
-              <Text style={styles.rating}>{item.rating}</Text>
+              <Text style={styles.rating}>{ratingText}</Text>
               <Image
                 source={require('../../assets/star.png')}
                 style={styles.starIcon}
@@ -165,45 +82,71 @@ const RestaurantCard = ({item, navigation}) => {
         </View>
       </TouchableOpacity>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.menuContainer}>
-          {item.menu.map(menuItem => (
-            <MenuItem
-              key={menuItem.id}
-              item={menuItem}
-              restaurant={item}
-              navigation={navigation}
-            />
-          ))}
-        </View>
-      </ScrollView>
+      {menuList.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.menuContainer}>
+            {menuList.map(menuItem => (
+              <MenuItem
+                key={menuItem.id}
+                item={menuItem}
+                restaurant={item}
+                navigation={navigation}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 };
 
 const HomeScreen = ({navigation}) => {
+  // State `stores` menyimpan daftar restoran yang dikembalikan dari API
+  const [stores, setStores] = useState([]);
+  // State `loading` digunakan untuk menampilkan spinner (ActivityIndicator) saat menunggu data
+  const [loading, setLoading] = useState(true);
+
+  // useEffect dieksekusi saat komponen dirender.
+  // Dalam kasus ini, kita memanggil fungsi fetchStores.
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        // Memanggil service untuk GET /api/stores
+        const response = await storeService.getAllStores({ showProducts: true, showRating: true });
+        if (response && response.data && response.data.stores) {
+          // Menyimpan data dari server ke state lokal
+          setStores(response.data.stores);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stores:', error);
+      } finally {
+        setLoading(false); // Mematikan animasi loading
+      }
+    };
+    
+    // Listener 'focus' memastikan bahwa setiap kali pengguna membuka kembali halaman Home (navigasi balik),
+    // aplikasi akan mengambil data toko terbaru dari database backend.
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchStores();
+    });
+
+    // Cleanup listener untuk mencegah memory leak
+    return unsubscribe;
+  }, [navigation]);
+
   const handleCart = () => {
-    // Implementasi logika cart
-    console.log('Cart button berhasil');
     navigation.navigate('Cart');
   };
   const handleOrder = () => {
-    // Implementasi logika order
-    console.log('Order button berhasil');
     navigation.navigate('Order');
   };
   const handleProfile = () => {
-    // Implementasi logika profile
-    console.log('Profile button berhasil');
     navigation.navigate('Profile');
   };
   const handleNotification = () => {
-    // Implementasi logika notifikasi
-    console.log('Notification button berhasil');
     navigation.navigate('Notification');
   };
 
-  // Di dalam HomeScreen
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -216,15 +159,22 @@ const HomeScreen = ({navigation}) => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={restaurantData}
-        renderItem={({item}) => (
-          <RestaurantCard item={item} navigation={navigation} />
-        )}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.restaurantList}
-      />
+      {loading ? (
+        <View style={[styles.restaurantList, { flex: 1, justifyContent: 'center' }]}>
+           <ActivityIndicator size="large" color="#FF6B35" />
+        </View>
+      ) : (
+        <FlatList
+          data={stores}
+          renderItem={({item}) => (
+            <RestaurantCard item={item} navigation={navigation} />
+          )}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.restaurantList}
+          ListEmptyComponent={<Text style={{textAlign: 'center', marginTop: 20}}>Belum ada toko yang tersedia</Text>}
+        />
+      )}
 
       <View style={styles.bottomNavigation}>
         <TouchableOpacity style={styles.navItem}>

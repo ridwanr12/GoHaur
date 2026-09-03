@@ -8,8 +8,10 @@ import {
   Image,
   StatusBar,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
+import {orderService} from '../api';
 
 const NewOrderScreen = ({navigation, route}) => {
   // Data pesanan dari halaman sebelumnya atau data default
@@ -66,22 +68,37 @@ const NewOrderScreen = ({navigation, route}) => {
     navigation.goBack();
   };
 
-  const handleProcessOrder = () => {
-    // Implementasi logika proses pesanan
-    console.log('Pesanan diproses');
-    navigation.goBack();
+  const handleProcessOrder = async () => {
+    try {
+      await orderService.updateOrderStatus(orderData.id, { status: 'approved' });
+      console.log('Pesanan diproses');
+      navigation.goBack();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Gagal', 'Tidak dapat memproses pesanan.');
+    }
   };
 
-  const handleRejectOrder = () => {
-    // Implementasi logika tolak pesanan
-    console.log('Pesanan ditolak');
-    navigation.navigate('Home');
+  const handleRejectOrder = async () => {
+    try {
+      await orderService.updateOrderStatus(orderData.id, { status: 'canceled' });
+      console.log('Pesanan ditolak');
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Gagal', 'Tidak dapat menolak pesanan.');
+    }
   };
 
-  const handleSendOrder = () => {
-    // Implementasi logika kirim pesanan
-    console.log('Pesanan dikirim');
-    navigation.goBack();
+  const handleSendOrder = async () => {
+    try {
+      await orderService.updateOrderStatus(orderData.id, { status: 'out_for_delivery' });
+      console.log('Pesanan dikirim');
+      navigation.goBack();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Gagal', 'Tidak dapat mengirim pesanan.');
+    }
   };
 
   return (

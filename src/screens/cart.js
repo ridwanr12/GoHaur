@@ -12,10 +12,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
-import {profileService} from '../api';
+import {profileService, orderService} from '../api';
 
+/**
+ * CartScreen mengelola keranjang belanja (items) dan proses checkout.
+ * Pada implementasi ini, state keranjang 'vendors' masih diatur secara lokal di state.
+ * Jika ingin skalabilitas lebih baik, keranjang ini idealnya dipindah ke Context atau Redux, 
+ * atau diambil dari backend secara dinamis.
+ */
 const CartScreen = ({navigation}) => {
-  // State untuk menyimpan data lokasi pengguna
+  // State untuk menyimpan data lokasi pengguna (Alamat Kirim)
   const [userLocation, setUserLocation] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
@@ -124,10 +130,44 @@ const CartScreen = ({navigation}) => {
     console.log('Notification button berhasil');
     navigation.navigate('Notification');
   };
-  const handlePayment = () => {
-    // Implementasi logika login
-    console.log('Bayar button berhasil');
-    navigation.navigate('Payment');
+  /**
+   * handlePayment dipanggil saat pengguna menekan tombol "Bayar" di bagian bawah layar.
+   * Fungsi ini akan membangun format data payload (Products) sesuai struktur yang diminta Backend,
+   * lalu memanggil orderService.createOrder().
+   */
+  const handlePayment = async () => {
+    try {
+      const selectedVendor = getSelectedVendor();
+      if (!selectedVendor || Object.keys(selectedVendor).length === 0) {
+        alert('Silakan pilih pesanan terlebih dahulu');
+        return;
+      }
+
+      // Menyesuaikan format JSON yang diminta oleh Backend untuk "Products"
+      const products = selectedVendor.items.map(item => ({
+        product_id: item.id.toString(), // ID produk yang akan dikonversi ke UUID di backend
+        quantity: quantities[item.id] || 1, // Kuantitas pesanan
+        note: item.note || '', // Catatan khusus (jika ada)
+      }));
+
+      // Membentuk objek `orderData` utama
+      const orderData = {
+        store_id: selectedVendor.id.toString(), // ID restoran (Store)
+        products: products, 
+        shipping_cost: 10000, // Hardcoded ongkir (untuk pengembangan lebih lanjut, ambil dari perhitungan kurir)
+        payment_proof: 'dummy-payment-proof.png', // Dummy resi pembayaran untuk tahap development
+      };
+
+      // POST ke /api/orders
+      await orderService.createOrder(orderData);
+      
+      console.log('Pesanan berhasil dibuat');
+      // Jika berhasil, alihkan pengguna ke halaman histori Pesanan
+      navigation.navigate('Order');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Gagal membuat pesanan. Pastikan server berjalan dan auth valid.');
+    }
   };
 
   const [quantities, setQuantities] = useState({

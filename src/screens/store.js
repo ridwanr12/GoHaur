@@ -10,8 +10,10 @@ import {
   StatusBar,
   SafeAreaView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
+import productService from '../api/services/productService';
 
 const StoreScreen = ({navigation, route}) => {
   const storeData = route.params?.storeData || {
@@ -24,65 +26,27 @@ const StoreScreen = ({navigation, route}) => {
   const showProductPopup = route.params?.showProductPopup || false;
   const selectedProductId = route.params?.selectedProductId;
 
-  const [products] = useState([
-    {
-      id: 1,
-      name: 'Iga Bakar 1',
-      price: 45000,
-      sold: 143,
-      image: require('../../assets/food1.png'),
-      description:
-        'Iga Bakar Haur dari Sate Joko Khas Haur Pancuh menghadirkan cita rasa khas dengan iga sapi pilihan yang dimasak perlahan hingga empuk dan dipanggang dengan arang untuk aroma smoky yang menggugah selera. Perpaduan bumbu rempah rahasia, kecap manis, bawang putih, dan jahe menciptakan rasa gurih yang meresap sempurna. Disajikan dengan sambal kecap, lalapan segar, dan nasi hangat, iga bakar ini menjadi pilihan tepat untuk menikmati hidangan lezat bersama keluarga atau teman.',
-    },
-    {
-      id: 2,
-      name: 'Iga Bakar Haur 2',
-      price: 45000,
-      sold: 143,
-      image: require('../../assets/food1.png'),
-      description:
-        'Iga Bakar Haur dari Sate Joko Khas Haur Pancuh menghadirkan cita rasa khas dengan iga sapi pilihan yang dimasak perlahan hingga empuk dan dipanggang dengan arang untuk aroma smoky yang menggugah selera. Perpaduan bumbu rempah rahasia, kecap manis, bawang putih, dan jahe menciptakan rasa gurih yang meresap sempurna. Disajikan dengan sambal kecap, lalapan segar, dan nasi hangat, iga bakar ini menjadi pilihan tepat untuk menikmati hidangan lezat bersama keluarga atau teman.',
-    },
-    {
-      id: 3,
-      name: 'Iga Bakar Haur',
-      price: 45000,
-      sold: 143,
-      image: require('../../assets/food1.png'),
-      description:
-        'Iga Bakar Haur dari Sate Joko Khas Haur Pancuh menghadirkan cita rasa khas dengan iga sapi pilihan yang dimasak perlahan hingga empuk dan dipanggang dengan arang untuk aroma smoky yang menggugah selera. Perpaduan bumbu rempah rahasia, kecap manis, bawang putih, dan jahe menciptakan rasa gurih yang meresap sempurna. Disajikan dengan sambal kecap, lalapan segar, dan nasi hangat, iga bakar ini menjadi pilihan tepat untuk menikmati hidangan lezat bersama keluarga atau teman.',
-    },
-    {
-      id: 4,
-      name: 'Iga Bakar Haur',
-      price: 45000,
-      sold: 143,
-      image: require('../../assets/food1.png'),
-      description:
-        'Iga Bakar Haur dari Sate Joko Khas Haur Pancuh menghadirkan cita rasa khas dengan iga sapi pilihan yang dimasak perlahan hingga empuk dan dipanggang dengan arang untuk aroma smoky yang menggugah selera. Perpaduan bumbu rempah rahasia, kecap manis, bawang putih, dan jahe menciptakan rasa gurih yang meresap sempurna. Disajikan dengan sambal kecap, lalapan segar, dan nasi hangat, iga bakar ini menjadi pilihan tepat untuk menikmati hidangan lezat bersama keluarga atau teman.',
-    },
-    {
-      id: 5,
-      name: 'Iga Bakar Haur',
-      price: 45000,
-      sold: 143,
-      image: require('../../assets/food1.png'),
-      description:
-        'Iga Bakar Haur dari Sate Joko Khas Haur Pancuh menghadirkan cita rasa khas dengan iga sapi pilihan yang dimasak perlahan hingga empuk dan dipanggang dengan arang untuk aroma smoky yang menggugah selera. Perpaduan bumbu rempah rahasia, kecap manis, bawang putih, dan jahe menciptakan rasa gurih yang meresap sempurna. Disajikan dengan sambal kecap, lalapan segar, dan nasi hangat, iga bakar ini menjadi pilihan tepat untuk menikmati hidangan lezat bersama keluarga atau teman.',
-    },
-    {
-      id: 6,
-      name: 'Iga Bakar Haur',
-      price: 45000,
-      sold: 143,
-      image: require('../../assets/food1.png'),
-      description:
-        'Iga Bakar Haur dari Sate Joko Khas Haur Pancuh menghadirkan cita rasa khas dengan iga sapi pilihan yang dimasak perlahan hingga empuk dan dipanggang dengan arang untuk aroma smoky yang menggugah selera. Perpaduan bumbu rempah rahasia, kecap manis, bawang putih, dan jahe menciptakan rasa gurih yang meresap sempurna. Disajikan dengan sambal kecap, lalapan segar, dan nasi hangat, iga bakar ini menjadi pilihan tepat untuk menikmati hidangan lezat bersama keluarga atau teman.',
-    },
-  ]);
-
+  const [products, setProducts] = useState(route.params?.storeData?.Products || []);
+  const [loading, setLoading] = useState(!route.params?.storeData?.Products?.length);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!storeData.id) return;
+      try {
+        const res = await productService.getStoreProducts(storeData.id);
+        if (res && res.data && res.data.products) {
+          setProducts(res.data.products);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [storeData.id]);
 
   // Tambahkan useEffect untuk menampilkan popup produk saat halaman dibuka
   useEffect(() => {
@@ -163,13 +127,13 @@ const StoreScreen = ({navigation, route}) => {
             />
             <View style={styles.storeDetails}>
               <Text style={styles.storeName}>{storeData.name}</Text>
-              <Text style={styles.storeAddress}>{storeData.location}</Text>
+              <Text style={styles.storeAddress}>{storeData.description || storeData.location}</Text>
               <Text style={styles.storeSold}>
-                {storeData.totalSold} Item Terjual
+                {storeData.totalSold || 0} Item Terjual
               </Text>
             </View>
             <View style={styles.ratingContainer}>
-              <Text style={styles.ratingText}>{storeData.rating}</Text>
+              <Text style={styles.ratingText}>{storeData.Ratings?.[0]?.average_rating || storeData.rating}</Text>
               <Text style={styles.ratingStar}>⭐</Text>
             </View>
             <TouchableOpacity
@@ -187,29 +151,38 @@ const StoreScreen = ({navigation, route}) => {
         <View style={styles.productsSection}>
           <Text style={styles.sectionTitle}>Produk</Text>
 
-          {products.map(product => (
-            <TouchableOpacity
-              key={product.id}
-              style={styles.productCard}
-              onPress={() => {
-                console.log('Product clicked:', product.name);
-                openProductDetail(product);
-              }}>
-              <Image source={product.image} style={styles.productImage} />
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productPrice}>
-                  {formatCurrency(product.price)}/ Item
-                </Text>
-                <Text style={styles.productSold}>{product.sold} Terjual</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => handleAddToCart(product.id)}>
-                <Text style={styles.addButtonText}>+</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+          {loading ? (
+            <ActivityIndicator size="large" color="#FF6B35" style={{marginTop: 20}} />
+          ) : (
+            products.map(product => {
+              const imageSource = product.images && product.images.length > 0
+                ? {uri: product.images[0]}
+                : require('../../assets/food1.png');
+
+              return (
+                <TouchableOpacity
+                  key={product.id}
+                  style={styles.productCard}
+                  onPress={() => {
+                    openProductDetail(product);
+                  }}>
+                  <Image source={imageSource} style={styles.productImage} />
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productPrice}>
+                      {formatCurrency(product.price)}/ Item
+                    </Text>
+                    <Text style={styles.productSold}>{product.stock} stok</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => handleAddToCart(product.id)}>
+                    <Text style={styles.addButtonText}>+</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
       </ScrollView>
 
@@ -247,7 +220,6 @@ const StoreScreen = ({navigation, route}) => {
                   <View style={{width: 20}} />
                 </View>
 
-                {/* Store Info in Modal */}
                 <View style={styles.modalStoreInfo}>
                   <Image
                     source={require('../../assets/restaurant.png')}
@@ -256,7 +228,7 @@ const StoreScreen = ({navigation, route}) => {
                   <Text style={styles.modalStoreName}>{storeData.name}</Text>
                   <View style={styles.modalRating}>
                     <Text style={styles.modalRatingText}>
-                      {storeData.rating}
+                      {storeData.Ratings?.[0]?.average_rating || storeData.rating}
                     </Text>
                     <Text style={styles.modalRatingStar}>⭐</Text>
                   </View>
@@ -270,7 +242,7 @@ const StoreScreen = ({navigation, route}) => {
                 {selectedProduct && (
                   <ScrollView style={styles.modalProductDetail}>
                     <Image
-                      source={selectedProduct.image}
+                      source={selectedProduct.images && selectedProduct.images.length > 0 ? {uri: selectedProduct.images[0]} : require('../../assets/food1.png')}
                       style={styles.modalProductImage}
                     />
                     <View style={styles.modalProductInfo}>
@@ -278,7 +250,7 @@ const StoreScreen = ({navigation, route}) => {
                         {selectedProduct.name}
                       </Text>
                       <Text style={styles.modalProductSold}>
-                        {selectedProduct.sold} terjual
+                        {selectedProduct.stock} stok
                       </Text>
                       <Text style={styles.modalProductPrice}>
                         {formatCurrency(selectedProduct.price)}/ Item
@@ -288,7 +260,7 @@ const StoreScreen = ({navigation, route}) => {
                         Deskripsi:
                       </Text>
                       <Text style={styles.modalDescription}>
-                        {selectedProduct.description}
+                        {selectedProduct.description || 'Tidak ada deskripsi.'}
                       </Text>
                     </View>
                   </ScrollView>

@@ -1,25 +1,30 @@
 import apiClient from '../apiClient';
 
-// Layanan untuk pesanan
+/**
+ * Service khusus untuk mengelola Endpoint '/api/orders'.
+ * Memisahkan pemanggilan API dari halaman UI agar kode lebih bersih (Clean Architecture).
+ */
 const orderService = {
-  // Mendapatkan semua pesanan
+  // Mendapatkan semua pesanan (Biasanya untuk pembeli)
   getAllOrders: () => {
-    return apiClient.get('/orders');
+    return apiClient.get('/api/orders/my-orders');
   },
 
-  // Mendapatkan detail pesanan berdasarkan ID
+  // Mendapatkan detail satu pesanan secara spesifik
   getOrderById: orderId => {
-    return apiClient.get(`/orders/${orderId}`);
+    return apiClient.get(`/api/orders/${orderId}`);
   },
 
-  // Membuat pesanan baru
+  // Membuat pesanan baru saat menekan tombol "Bayar" di CartScreen
   createOrder: orderData => {
-    return apiClient.post('/orders', orderData);
+    // Memanggil fungsi POST ke /api/orders
+    return apiClient.post('/api/orders', orderData);
   },
 
-  // Memperbarui status pesanan
+  // Memperbarui status pesanan (Misal dari Seller menyetujui pesanan)
   updateOrderStatus: (orderId, statusData) => {
-    return apiClient.patch(`/orders/${orderId}/status`, statusData);
+    // Backend menggunakan PUT untuk mengupdate status
+    return apiClient.put(`/api/orders/${orderId}/status`, statusData);
   },
 };
 
