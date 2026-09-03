@@ -169,7 +169,7 @@ const CartScreen = ({navigation}) => {
               <View key={vendor.id} style={styles.vendorSection}>
                 <TouchableOpacity 
                   style={styles.vendorHeader} 
-                  onPress={() => toggleVendorSelection(vendor.id)}
+                  onPress={() => toggleStoreSelection(vendor.id)}
                 >
                   {vendor.selected ? (
                     <View style={styles.selectedRadio}>
