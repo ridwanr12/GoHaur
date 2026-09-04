@@ -34,7 +34,10 @@ const SigninScreen = ({navigation}) => {
       // secara otomatis akan memindahkan kita ke halaman (Navigator) yang tepat.
       const response = await login({email, password});
       console.log('Login berhasil:', response.data);
-
+      const role = response?.data?.user?.roles || [];
+      console.log('Role user yang login:', role);
+      Alert.alert('Login Berhasil', `Login berhasil dengan role: ${role.join(', ')}`);
+      
       // Tidak perlu navigation.navigate('Home') karena RootNavigator akan merender ulang 
       // dan langsung menampilkan BuyerNavigator (yang layar pertamanya adalah Home) 
       // berdasarkan state token yang sudah terisi.

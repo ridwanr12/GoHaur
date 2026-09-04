@@ -60,43 +60,46 @@ const CartScreen = ({navigation}) => {
   const handleOrder = () => navigation.navigate('Order');
   const handleProfile = () => navigation.navigate('Profile');
   const handleNotification = () => navigation.navigate('Notification');
+  // const handlePayment = () => navigation.navigate('Payment');
 
-  const handlePayment = async () => {
-    try {
-      const selectedVendor = getSelectedVendor();
-      if (!selectedVendor || Object.keys(selectedVendor).length === 0) {
-        Alert.alert('Peringatan', 'Silakan pilih pesanan terlebih dahulu');
-        return;
-      }
+  // const handlePayment = async () => {
+  //   try {
+  //     const selectedVendor = getSelectedVendor();
+  //     if (!selectedVendor || Object.keys(selectedVendor).length === 0) {
+  //       Alert.alert('Peringatan', 'Silakan pilih pesanan terlebih dahulu');
+  //       return;
+  //     }
 
-      // Menyesuaikan format JSON yang diminta oleh Backend untuk "Products"
-      const products = selectedVendor.items.map(item => ({
-        product_id: item.id.toString(), 
-        quantity: item.quantity, 
-        note: item.note || '', 
-      }));
+  //     // ini ke payment dulu sebelum order
 
-      // Membentuk objek `orderData` utama
-      const orderData = {
-        store_id: selectedVendor.id.toString(), 
-        products: products, 
-        shipping_cost: 10000, 
-        payment_proof: 'dummy-payment-proof.png', 
-      };
+  //     // Menyesuaikan format JSON yang diminta oleh Backend untuk "Products"
+  //     const products = selectedVendor.items.map(item => ({
+  //       product_id: item.id.toString(), 
+  //       quantity: item.quantity, 
+  //       note: item.note || '', 
+  //     }));
 
-      // POST ke /api/orders
-      await orderService.createOrder(orderData);
+  //     // Membentuk objek `orderData` utama
+  //     const orderData = {
+  //       store_id: selectedVendor.id.toString(), 
+  //       products: products, 
+  //       shipping_cost: 10000, 
+  //       payment_proof: 'dummy-payment-proof.png', 
+  //     };
+
+  //     // POST ke /api/orders
+  //     await orderService.createOrder(orderData);
       
-      // Hapus keranjang restoran yang sudah di checkout
-      clearStoreFromCart(selectedVendor.id);
+  //     // Hapus keranjang restoran yang sudah di checkout
+  //     clearStoreFromCart(selectedVendor.id);
 
-      Alert.alert('Sukses', 'Pesanan berhasil dibuat!');
-      navigation.navigate('Order');
-    } catch (error) {
-      console.error('Error creating order:', error);
-      Alert.alert('Error', 'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.');
-    }
-  };
+  //     Alert.alert('Sukses', 'Pesanan berhasil dibuat!');
+  //     navigation.navigate('Order');
+  //   } catch (error) {
+  //     console.error('Error creating order:', error);
+  //     Alert.alert('Error', 'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.');
+  //   }
+  // };
 
   const calculateTotal = items => {
     return items.reduce((total, item) => total + item.price * item.quantity, 0);

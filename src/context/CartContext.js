@@ -44,14 +44,17 @@ export const CartProvider = ({children}) => {
     setCart(prevCart => {
       // Cari apakah toko sudah ada di keranjang
       const existingStoreIndex = prevCart.findIndex(s => s.id === store.id);
-      
-      let newCart = [...prevCart];
+
+      let newCart = prevCart.map(cartStore => ({
+        ...cartStore,
+        selected: cartStore.id === store.id,
+      }));
 
       if (existingStoreIndex >= 0) {
         // Toko sudah ada, cek apakah produk sudah ada
         const storeInCart = newCart[existingStoreIndex];
         const existingProductIndex = storeInCart.items.findIndex(
-          item => item.id === product.id
+          item => item.id === product.id,
         );
 
         if (existingProductIndex >= 0) {
@@ -69,7 +72,10 @@ export const CartProvider = ({children}) => {
             price: product.price,
             quantity: quantity,
             note: note,
-            image: product.images && product.images.length > 0 ? {uri: product.images[0]} : require('../../assets/food1.png')
+            image:
+              product.images && product.images.length > 0
+                ? {uri: product.images[0]}
+                : require('../../assets/food1.png'),
           });
         }
       } else {
@@ -77,7 +83,8 @@ export const CartProvider = ({children}) => {
         newCart.push({
           id: store.id,
           name: store.name,
-          address: store.description || store.location || 'Alamat tidak tersedia',
+          address:
+            store.description || store.location || 'Alamat tidak tersedia',
           selected: true, // Default dipilih saat masuk cart
           items: [
             {
@@ -86,9 +93,12 @@ export const CartProvider = ({children}) => {
               price: product.price,
               quantity: quantity,
               note: note,
-              image: product.images && product.images.length > 0 ? {uri: product.images[0]} : require('../../assets/food1.png')
-            }
-          ]
+              image:
+                product.images && product.images.length > 0
+                  ? {uri: product.images[0]}
+                  : require('../../assets/food1.png'),
+            },
+          ],
         });
       }
 
@@ -100,15 +110,17 @@ export const CartProvider = ({children}) => {
   // Remove specific item from cart
   const removeFromCart = (storeId, productId) => {
     setCart(prevCart => {
-      return prevCart.map(store => {
-        if (store.id === storeId) {
-          return {
-            ...store,
-            items: store.items.filter(item => item.id !== productId)
-          };
-        }
-        return store;
-      }).filter(store => store.items.length > 0); // Hapus toko jika item kosong
+      return prevCart
+        .map(store => {
+          if (store.id === storeId) {
+            return {
+              ...store,
+              items: store.items.filter(item => item.id !== productId),
+            };
+          }
+          return store;
+        })
+        .filter(store => store.items.length > 0); // Hapus toko jika item kosong
     });
   };
 
@@ -124,9 +136,9 @@ export const CartProvider = ({children}) => {
         if (store.id === storeId) {
           return {
             ...store,
-            items: store.items.map(item => 
-              item.id === productId ? {...item, quantity: newQuantity} : item
-            )
+            items: store.items.map(item =>
+              item.id === productId ? {...item, quantity: newQuantity} : item,
+            ),
           };
         }
         return store;
@@ -141,9 +153,9 @@ export const CartProvider = ({children}) => {
         if (store.id === storeId) {
           return {
             ...store,
-            items: store.items.map(item => 
-              item.id === productId ? {...item, note: newNote} : item
-            )
+            items: store.items.map(item =>
+              item.id === productId ? {...item, note: newNote} : item,
+            ),
           };
         }
         return store;
@@ -152,16 +164,20 @@ export const CartProvider = ({children}) => {
   };
 
   // Toggle store selection in cart (for checkout)
-  const toggleStoreSelection = (storeId) => {
+  const toggleStoreSelection = storeId => {
     setCart(prevCart => {
-      return prevCart.map(store => 
-        store.id === storeId ? {...store, selected: !store.selected} : store
-      );
+      return prevCart.map(store => {
+        if (store.id === storeId) {
+          return {...store, selected: !store.selected};
+        }
+
+        return {...store, selected: false};
+      });
     });
   };
 
   // Clear specific store (after checkout)
-  const clearStoreFromCart = (storeId) => {
+  const clearStoreFromCart = storeId => {
     setCart(prevCart => prevCart.filter(store => store.id !== storeId));
   };
 
@@ -181,7 +197,7 @@ export const CartProvider = ({children}) => {
         toggleStoreSelection,
         clearStoreFromCart,
         clearCart,
-        isLoading
+        isLoading,
       }}>
       {children}
     </CartContext.Provider>
