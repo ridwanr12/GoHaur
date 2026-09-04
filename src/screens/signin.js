@@ -20,6 +20,11 @@ const SigninScreen = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth(); // Ambil fungsi login dari AuthContext
 
+  // Fungsi untuk melihat screen review tapi gabisa
+  const handleViewReview = () => {
+    navigation.navigate('ReviewScreen');
+  };
+
   const handleSignin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Email dan password harus diisi');
@@ -109,6 +114,12 @@ const SigninScreen = ({navigation}) => {
         <TouchableOpacity style={styles.button} onPress={handleSignin}>
           <Text style={styles.buttonText}>Masuk</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleViewReview}>
+          <Text style={styles.buttonText}>Review</Text>
+        </TouchableOpacity>
+        {/* <TouchableOpacity style={styles.button} onPress={handleViewCourierProfileDetails}>
+          <Text style={styles.buttonText}>Edit Profile Kurir</Text>
+        </TouchableOpacity> */}
       </ScrollView>
     </SafeAreaView>
   );

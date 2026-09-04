@@ -13,22 +13,39 @@ import {
 import fonts from '../constants/styles';
 // import {launchImageLibrary} from 'react-native-image-picker';
 
+// ini screen payment, untuk upload bukti pembayaran, baru ke screen order
+
 const PaymentScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
 
   if (!orderData) {
     return (
-      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
-        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>Pesanan tidak ditemukan.</Text>
-        <TouchableOpacity style={{marginTop: 20, padding: 10, backgroundColor: '#FF6B35', borderRadius: 10}} onPress={() => navigation.goBack()}>
-          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>Kembali</Text>
+      <SafeAreaView
+        style={[
+          styles.container,
+          {justifyContent: 'center', alignItems: 'center'},
+        ]}>
+        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>
+          Pesanan tidak ditemukan.
+        </Text>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            padding: 10,
+            backgroundColor: '#FF6B35',
+            borderRadius: 10,
+          }}
+          onPress={() => navigation.goBack()}>
+          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>
+            Kembali
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   const [paymentProof, setPaymentProof] = useState(null);
-  
+
   // Format items
   const items = orderData.order_items || orderData.items || [];
   const vendor = orderData.vendor || {
@@ -40,20 +57,14 @@ const PaymentScreen = ({navigation, route}) => {
   const deliveryFee = orderData.shipping_cost || orderData.deliveryFee || 0;
   const serviceFee = 2000;
 
-
   // Menghitung total harga produk
   const calculateProductTotal = () => {
-    return items.reduce(
-      (total, item) => total + item.price * item.quantity,
-      0,
-    );
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   // Menghitung total keseluruhan
   const calculateGrandTotal = () => {
-    return (
-      calculateProductTotal() + deliveryFee + serviceFee
-    );
+    return calculateProductTotal() + deliveryFee + serviceFee;
   };
 
   // Format currency
@@ -127,9 +138,7 @@ const PaymentScreen = ({navigation, route}) => {
             <Image source={vendor.image} style={styles.vendorImage} />
             <View style={styles.vendorInfo}>
               <Text style={styles.vendorName}>{vendor.name}</Text>
-              <Text style={styles.vendorAddress}>
-                {vendor.location}
-              </Text>
+              <Text style={styles.vendorAddress}>{vendor.location}</Text>
             </View>
           </View>
 
@@ -141,9 +150,19 @@ const PaymentScreen = ({navigation, route}) => {
                 styles.foodItem,
                 index === items.length - 1 && {borderBottomWidth: 0},
               ]}>
-              <Image source={item.image || (item.Product?.images?.[0] ? {uri: item.Product.images[0]} : require('../../assets/food1.png'))} style={styles.foodImage} />
+              <Image
+                source={
+                  item.image ||
+                  (item.Product?.images?.[0]
+                    ? {uri: item.Product.images[0]}
+                    : require('../../assets/food1.png'))
+                }
+                style={styles.foodImage}
+              />
               <View style={styles.foodDetails}>
-                <Text style={styles.foodName}>{item.name || item.Product?.name || 'Produk'}</Text>
+                <Text style={styles.foodName}>
+                  {item.name || item.Product?.name || 'Produk'}
+                </Text>
                 <Text style={styles.foodPrice}>
                   {formatCurrency(item.price)}/ Item
                 </Text>

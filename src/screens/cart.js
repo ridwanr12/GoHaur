@@ -10,7 +10,7 @@ import {
   StatusBar,
   SafeAreaView,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {profileService, orderService} from '../api';
@@ -19,15 +19,15 @@ import {useCart} from '../context/CartContext';
 const CartScreen = ({navigation}) => {
   const [userLocation, setUserLocation] = useState('');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  
+
   // Ambil state dan fungsi dari CartContext
   const {
-    cart: vendors, 
-    updateQuantity, 
-    updateNote, 
-    toggleStoreSelection, 
-    clearStoreFromCart, 
-    isLoading: isCartLoading
+    cart: vendors,
+    updateQuantity,
+    updateNote,
+    toggleStoreSelection,
+    clearStoreFromCart,
+    isLoading: isCartLoading,
   } = useCart();
 
   const fetchUserProfile = async () => {
@@ -60,6 +60,8 @@ const CartScreen = ({navigation}) => {
   const handleOrder = () => navigation.navigate('Order');
   const handleProfile = () => navigation.navigate('Profile');
   const handleNotification = () => navigation.navigate('Notification');
+
+  // dari cart ini perlu ke screen payment, baru ke order
   // const handlePayment = () => navigation.navigate('Payment');
 
   // const handlePayment = async () => {
@@ -70,26 +72,24 @@ const CartScreen = ({navigation}) => {
   //       return;
   //     }
 
-  //     // ini ke payment dulu sebelum order
-
   //     // Menyesuaikan format JSON yang diminta oleh Backend untuk "Products"
   //     const products = selectedVendor.items.map(item => ({
-  //       product_id: item.id.toString(), 
-  //       quantity: item.quantity, 
-  //       note: item.note || '', 
+  //       product_id: item.id.toString(),
+  //       quantity: item.quantity,
+  //       note: item.note || '',
   //     }));
 
   //     // Membentuk objek `orderData` utama
   //     const orderData = {
-  //       store_id: selectedVendor.id.toString(), 
-  //       products: products, 
-  //       shipping_cost: 10000, 
-  //       payment_proof: 'dummy-payment-proof.png', 
+  //       store_id: selectedVendor.id.toString(),
+  //       products: products,
+  //       shipping_cost: 10000,
+  //       payment_proof: 'dummy-payment-proof.png',
   //     };
 
   //     // POST ke /api/orders
   //     await orderService.createOrder(orderData);
-      
+
   //     // Hapus keranjang restoran yang sudah di checkout
   //     clearStoreFromCart(selectedVendor.id);
 
@@ -120,7 +120,11 @@ const CartScreen = ({navigation}) => {
 
   if (isCartLoading) {
     return (
-      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+      <SafeAreaView
+        style={[
+          styles.container,
+          {justifyContent: 'center', alignItems: 'center'},
+        ]}>
         <ActivityIndicator size="large" color="#FF6B35" />
       </SafeAreaView>
     );
@@ -151,7 +155,7 @@ const CartScreen = ({navigation}) => {
             <Text style={styles.addressText}>{userLocation}</Text>
           )}
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.changeButton}
           onPress={() => navigation.navigate('ProfileDetail')}>
           <Text style={styles.changeButtonText}>Ganti</Text>
@@ -161,19 +165,21 @@ const CartScreen = ({navigation}) => {
       {/* Main Content Container */}
       <View style={styles.mainContent}>
         {vendors.length === 0 ? (
-          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <Text style={{fontFamily: fonts.poppinsMedium, color: '#666'}}>Keranjang masih kosong</Text>
+          <View
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{fontFamily: fonts.poppinsMedium, color: '#666'}}>
+              Keranjang masih kosong
+            </Text>
           </View>
         ) : (
-          <ScrollView 
+          <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}>
-            {vendors.map((vendor) => (
+            {vendors.map(vendor => (
               <View key={vendor.id} style={styles.vendorSection}>
-                <TouchableOpacity 
-                  style={styles.vendorHeader} 
-                  onPress={() => toggleStoreSelection(vendor.id)}
-                >
+                <TouchableOpacity
+                  style={styles.vendorHeader}
+                  onPress={() => toggleStoreSelection(vendor.id)}>
                   {vendor.selected ? (
                     <View style={styles.selectedRadio}>
                       <View style={styles.selectedRadioInner} />
@@ -202,10 +208,12 @@ const CartScreen = ({navigation}) => {
                       <View style={styles.noteContainer}>
                         <Text style={styles.noteLabel}>Note: </Text>
                         <View style={styles.noteInputContainer}>
-                          <TextInput 
+                          <TextInput
                             style={styles.noteText}
                             value={item.note}
-                            onChangeText={(text) => updateNote(vendor.id, item.id, text)}
+                            onChangeText={text =>
+                              updateNote(vendor.id, item.id, text)
+                            }
                             placeholder="Ketik catatan..."
                           />
                         </View>
@@ -218,15 +226,25 @@ const CartScreen = ({navigation}) => {
                       <View style={styles.quantityControls}>
                         <TouchableOpacity
                           style={styles.quantityButton}
-                          onPress={() => updateQuantity(vendor.id, item.id, item.quantity - 1)}>
+                          onPress={() =>
+                            updateQuantity(
+                              vendor.id,
+                              item.id,
+                              item.quantity - 1,
+                            )
+                          }>
                           <Text style={styles.quantityButtonText}>-</Text>
                         </TouchableOpacity>
-                        <Text style={styles.quantityText}>
-                          {item.quantity}
-                        </Text>
+                        <Text style={styles.quantityText}>{item.quantity}</Text>
                         <TouchableOpacity
                           style={styles.quantityButton}
-                          onPress={() => updateQuantity(vendor.id, item.id, item.quantity + 1)}>
+                          onPress={() =>
+                            updateQuantity(
+                              vendor.id,
+                              item.id,
+                              item.quantity + 1,
+                            )
+                          }>
                           <Text style={styles.quantityButtonText}>+</Text>
                         </TouchableOpacity>
                       </View>
@@ -255,7 +273,9 @@ const CartScreen = ({navigation}) => {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.checkoutButton} onPress={handlePayment}>
+            <TouchableOpacity
+              style={styles.checkoutButton}
+              onPress={handlePayment}>
               <Text style={styles.checkoutButtonText}>Bayar</Text>
             </TouchableOpacity>
           </View>
@@ -377,7 +397,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 15,
-    paddingBottom: 15, 
+    paddingBottom: 15,
   },
   vendorSection: {
     backgroundColor: 'white',
@@ -489,14 +509,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 10,
     justifyContent: 'center',
-    height: 35
+    height: 35,
   },
   noteText: {
     fontSize: 12,
     fontFamily: fonts.poppinsRegular,
     color: '#666',
     padding: 0,
-    margin: 0
+    margin: 0,
   },
   priceQuantityContainer: {
     width: 120,
