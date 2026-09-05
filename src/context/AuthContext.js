@@ -2,7 +2,7 @@ import React, {createContext, useState, useEffect, useContext} from 'react';
 import {getToken, getUserData} from '../utils/tokenStorage';
 import {authService} from '../api';
 
-// Membuat objek Context. Context memungkinkan kita melempar data (state) 
+// Membuat objek Context. Context memungkinkan kita melempar data (state)
 // ke seluruh penjuru aplikasi tanpa harus melempar props (props drilling) satu per satu.
 const AuthContext = createContext();
 
@@ -12,7 +12,7 @@ const AuthContext = createContext();
  */
 export const AuthProvider = ({children}) => {
   const [user, setUser] = useState(null); // Menyimpan objek profil user (termasuk role)
-  const [token, setToken] = useState(null); // Menyimpan token JWT 
+  const [token, setToken] = useState(null); // Menyimpan token JWT
   const [isLoading, setIsLoading] = useState(true); // Loading awal ketika mengecek AsyncStorage
 
   // useEffect ini berjalan SATU KALI saat aplikasi baru saja dibuka.
@@ -106,4 +106,3 @@ export const AuthProvider = ({children}) => {
 // Custom Hook untuk memudahkan komponen lain memakai AuthContext.
 // Cara pakai di file lain: const { user, login } = useAuth();
 export const useAuth = () => useContext(AuthContext);
-

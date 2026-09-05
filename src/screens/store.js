@@ -27,8 +27,12 @@ const StoreScreen = ({navigation, route}) => {
   const showProductPopup = route.params?.showProductPopup || false;
   const selectedProductId = route.params?.selectedProductId;
 
-  const [products, setProducts] = useState(route.params?.storeData?.Products || []);
-  const [loading, setLoading] = useState(!route.params?.storeData?.Products?.length);
+  const [products, setProducts] = useState(
+    route.params?.storeData?.Products || [],
+  );
+  const [loading, setLoading] = useState(
+    !route.params?.storeData?.Products?.length,
+  );
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const {addToCart} = useCart();
@@ -131,13 +135,17 @@ const StoreScreen = ({navigation, route}) => {
             />
             <View style={styles.storeDetails}>
               <Text style={styles.storeName}>{storeData.name}</Text>
-              <Text style={styles.storeAddress}>{storeData.description || storeData.location}</Text>
+              <Text style={styles.storeAddress}>
+                {storeData.description || storeData.location}
+              </Text>
               <Text style={styles.storeSold}>
                 {storeData.totalSold || 0} Item Terjual
               </Text>
             </View>
             <View style={styles.ratingContainer}>
-              <Text style={styles.ratingText}>{storeData.Ratings?.[0]?.average_rating || storeData.rating}</Text>
+              <Text style={styles.ratingText}>
+                {storeData.Ratings?.[0]?.average_rating || storeData.rating}
+              </Text>
               <Text style={styles.ratingStar}>⭐</Text>
             </View>
             <TouchableOpacity
@@ -156,12 +164,17 @@ const StoreScreen = ({navigation, route}) => {
           <Text style={styles.sectionTitle}>Produk</Text>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#FF6B35" style={{marginTop: 20}} />
+            <ActivityIndicator
+              size="large"
+              color="#FF6B35"
+              style={{marginTop: 20}}
+            />
           ) : (
             products.map(product => {
-              const imageSource = product.images && product.images.length > 0
-                ? {uri: product.images[0]}
-                : require('../../assets/food1.png');
+              const imageSource =
+                product.images && product.images.length > 0
+                  ? {uri: product.images[0]}
+                  : require('../../assets/food1.png');
 
               return (
                 <TouchableOpacity
@@ -232,7 +245,8 @@ const StoreScreen = ({navigation, route}) => {
                   <Text style={styles.modalStoreName}>{storeData.name}</Text>
                   <View style={styles.modalRating}>
                     <Text style={styles.modalRatingText}>
-                      {storeData.Ratings?.[0]?.average_rating || storeData.rating}
+                      {storeData.Ratings?.[0]?.average_rating ||
+                        storeData.rating}
                     </Text>
                     <Text style={styles.modalRatingStar}>⭐</Text>
                   </View>
@@ -246,7 +260,12 @@ const StoreScreen = ({navigation, route}) => {
                 {selectedProduct && (
                   <ScrollView style={styles.modalProductDetail}>
                     <Image
-                      source={selectedProduct.images && selectedProduct.images.length > 0 ? {uri: selectedProduct.images[0]} : require('../../assets/food1.png')}
+                      source={
+                        selectedProduct.images &&
+                        selectedProduct.images.length > 0
+                          ? {uri: selectedProduct.images[0]}
+                          : require('../../assets/food1.png')
+                      }
                       style={styles.modalProductImage}
                     />
                     <View style={styles.modalProductInfo}>

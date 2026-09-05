@@ -36,7 +36,9 @@ const NotificationScreen = ({navigation}) => {
       {/* Daftar Notifikasi */}
       {notifications.length === 0 ? (
         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <Text style={{fontFamily: fonts.poppinsMedium, color: '#666'}}>Belum ada notifikasi</Text>
+          <Text style={{fontFamily: fonts.poppinsMedium, color: '#666'}}>
+            Belum ada notifikasi
+          </Text>
         </View>
       ) : (
         <ScrollView
@@ -45,7 +47,9 @@ const NotificationScreen = ({navigation}) => {
           {notifications.map(notification => (
             <View key={notification.id} style={styles.notificationItem}>
               <View style={styles.notificationContent}>
-                <Text style={styles.notificationTitle}>{notification.title}</Text>
+                <Text style={styles.notificationTitle}>
+                  {notification.title}
+                </Text>
                 <Text style={styles.notificationDate}>{notification.date}</Text>
               </View>
               <Text style={styles.notificationMessage}>

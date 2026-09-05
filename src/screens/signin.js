@@ -18,7 +18,7 @@ const SigninScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth(); // Ambil fungsi login dari AuthContext
+  const {login} = useAuth(); // Ambil fungsi login dari AuthContext
 
   // Fungsi untuk melihat screen review tapi gabisa
   const handleViewReview = () => {
@@ -35,16 +35,19 @@ const SigninScreen = ({navigation}) => {
 
     try {
       // Panggil fungsi login dari AuthContext, bukan authService langsung.
-      // Ini akan memperbarui state global (user, token) sehingga RootNavigator 
+      // Ini akan memperbarui state global (user, token) sehingga RootNavigator
       // secara otomatis akan memindahkan kita ke halaman (Navigator) yang tepat.
       const response = await login({email, password});
       console.log('Login berhasil:', response.data);
       const role = response?.data?.user?.roles || [];
       console.log('Role user yang login:', role);
-      Alert.alert('Login Berhasil', `Login berhasil dengan role: ${role.join(', ')}`);
-      
-      // Tidak perlu navigation.navigate('Home') karena RootNavigator akan merender ulang 
-      // dan langsung menampilkan BuyerNavigator (yang layar pertamanya adalah Home) 
+      Alert.alert(
+        'Login Berhasil',
+        `Login berhasil dengan role: ${role.join(', ')}`,
+      );
+
+      // Tidak perlu navigation.navigate('Home') karena RootNavigator akan merender ulang
+      // dan langsung menampilkan BuyerNavigator (yang layar pertamanya adalah Home)
       // berdasarkan state token yang sudah terisi.
     } catch (error) {
       console.error('Login gagal:', error.message);

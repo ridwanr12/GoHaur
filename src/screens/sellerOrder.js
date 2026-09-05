@@ -13,14 +13,11 @@ import {
 import fonts from '../constants/styles';
 import {orderService} from '../api';
 
-// Komponen untuk menampilkan item pesanan
 const OrderItem = ({item, onPress}) => {
-  // Format total harga
   const total = item.total_amount
     ? `Rp ${item.total_amount.toLocaleString('id-ID')}`
     : 'Rp 0';
 
-  // Format tanggal (asumsi format ISO dari backend)
   const dateObj = new Date(item.created_at);
   const dateStr = !isNaN(dateObj.getTime())
     ? dateObj.toLocaleDateString('id-ID', {
@@ -38,16 +35,14 @@ const OrderItem = ({item, onPress}) => {
         </View>
         <Text style={styles.dateText}>{dateStr}</Text>
       </View>
-
       <View style={styles.orderContent}>
-        {/* Placeholder image karena API backend saat ini mungkin tidak mereturn image restoran di list order */}
         <Image
           source={require('../../assets/restaurant.png')}
           style={styles.orderImage}
         />
         <View style={styles.orderInfo}>
           <Text style={styles.restaurantName}>
-            {item.Store?.name || 'Restoran tidak diketahui'}
+            {item.Store?.name || item.User?.name || 'Pembeli tidak diketahui'}
           </Text>
           <Text style={styles.totalText}>Total : {total}</Text>
         </View>
@@ -56,7 +51,7 @@ const OrderItem = ({item, onPress}) => {
   );
 };
 
-const OrderScreen = ({navigation}) => {
+const SellerOrderScreen = ({navigation}) => {
   const [activeTab, setActiveTab] = useState('Semua');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +69,7 @@ const OrderScreen = ({navigation}) => {
       try {
         setLoading(true);
         const response = await orderService.getAllOrders();
-        if (response.data && response.data.orders) {
+        if (response.data?.orders) {
           setOrders(response.data.orders);
         } else if (Array.isArray(response.data)) {
           setOrders(response.data);
@@ -86,27 +81,15 @@ const OrderScreen = ({navigation}) => {
       }
     };
 
-    // Fetch everytime screen comes into focus
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchOrders();
-    });
-
-    fetchOrders(); // Initial fetch
-
+    const unsubscribe = navigation.addListener('focus', fetchOrders);
     return unsubscribe;
   }, [navigation]);
 
-  const handleHome = () => navigation.navigate('Home');
-  const handleCart = () => navigation.navigate('Cart');
-  const handleProfile = () => navigation.navigate('Profile');
-  const handleNotification = () => navigation.navigate('Notification');
-
   const goToOrderDetail = item => {
-    // Arahkan ke CurrentOrder dengan membawa data asli
-    navigation.navigate('CurrentOrder', {orderData: item});
+    // Seller ke NewOrder, bukan CurrentOrder
+    navigation.navigate('NewOrder', {orderData: item});
   };
 
-  // Filter orders berdasarkan tab
   const getFilteredOrders = () => {
     if (activeTab === 'Semua') return orders;
     return orders.filter(order => order.status === activeTab);
@@ -116,7 +99,7 @@ const OrderScreen = ({navigation}) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Pesanan</Text>
-        <TouchableOpacity onPress={handleNotification}>
+        <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
           <Image
             source={require('../../assets/notification.png')}
             style={styles.notificationIcon}
@@ -124,6 +107,7 @@ const OrderScreen = ({navigation}) => {
         </TouchableOpacity>
       </View>
 
+      {/* Tab Filter */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {tabs.map(tab => (
@@ -167,20 +151,16 @@ const OrderScreen = ({navigation}) => {
         />
       )}
 
+      {/* Bottom Navigation - 3 item seller */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity style={styles.navItem} onPress={handleHome}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => navigation.navigate('SellerHome')}>
           <Image
             source={require('../../assets/home.png')}
             style={styles.navIcon}
           />
-          <Text style={styles.navText}>Beranda</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={handleCart}>
-          <Image
-            source={require('../../assets/cart.png')}
-            style={styles.navIcon}
-          />
-          <Text style={styles.navText}>Keranjang</Text>
+          <Text style={styles.navText}>Toko</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
           <Image
@@ -189,7 +169,9 @@ const OrderScreen = ({navigation}) => {
           />
           <Text style={[styles.navText, styles.activeNavText]}>Pesanan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={handleProfile}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Profile')}>
           <Image
             source={require('../../assets/profile.png')}
             style={styles.navIcon}
@@ -280,10 +262,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 15,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
@@ -364,4 +343,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OrderScreen;
+export default SellerOrderScreen;

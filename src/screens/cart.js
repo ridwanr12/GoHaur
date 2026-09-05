@@ -61,7 +61,7 @@ const CartScreen = ({navigation}) => {
   const handleProfile = () => navigation.navigate('Profile');
   const handleNotification = () => navigation.navigate('Notification');
 
-  // dari cart ini perlu ke screen payment, baru ke order
+  // dari screen cart ini perlu ke screen payment, setelah itu baru ke screen order
   // const handlePayment = () => navigation.navigate('Payment');
 
   // const handlePayment = async () => {

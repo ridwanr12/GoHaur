@@ -19,10 +19,25 @@ const NewOrderScreen = ({navigation, route}) => {
   // Jika tidak ada data order, tampilkan pesan kosong
   if (!orderData) {
     return (
-      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
-        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>Pesanan tidak ditemukan.</Text>
-        <TouchableOpacity style={{marginTop: 20, padding: 10, backgroundColor: '#FF6B35', borderRadius: 10}} onPress={() => navigation.goBack()}>
-          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>Kembali</Text>
+      <SafeAreaView
+        style={[
+          styles.container,
+          {justifyContent: 'center', alignItems: 'center'},
+        ]}>
+        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>
+          Pesanan tidak ditemukan.
+        </Text>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            padding: 10,
+            backgroundColor: '#FF6B35',
+            borderRadius: 10,
+          }}
+          onPress={() => navigation.goBack()}>
+          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>
+            Kembali
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -30,7 +45,10 @@ const NewOrderScreen = ({navigation, route}) => {
 
   // Format data item dari response backend
   const items = orderData.order_items || [];
-  const address = orderData.shipping_address || orderData.User?.location || 'Alamat tidak diketahui';
+  const address =
+    orderData.shipping_address ||
+    orderData.User?.location ||
+    'Alamat tidak diketahui';
   const status = orderData.status || 'Menunggu Diproses';
   const buyer = orderData.User?.name || 'Pembeli';
   const deliveryFee = orderData.shipping_cost || 0;
@@ -38,15 +56,15 @@ const NewOrderScreen = ({navigation, route}) => {
 
   // Menghitung total harga produk
   const calculateProductTotal = () => {
-    return items.reduce(
-      (total, item) => total + (item.price * item.quantity),
-      0,
-    );
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   // Menghitung total keseluruhan
   const calculateGrandTotal = () => {
-    return orderData.total_amount || (calculateProductTotal() + deliveryFee + serviceFee);
+    return (
+      orderData.total_amount ||
+      calculateProductTotal() + deliveryFee + serviceFee
+    );
   };
 
   // Format currency
@@ -60,7 +78,7 @@ const NewOrderScreen = ({navigation, route}) => {
 
   const handleProcessOrder = async () => {
     try {
-      await orderService.updateOrderStatus(orderData.id, { status: 'approved' });
+      await orderService.updateOrderStatus(orderData.id, {status: 'approved'});
       console.log('Pesanan diproses');
       navigation.goBack();
     } catch (error) {
@@ -71,7 +89,7 @@ const NewOrderScreen = ({navigation, route}) => {
 
   const handleRejectOrder = async () => {
     try {
-      await orderService.updateOrderStatus(orderData.id, { status: 'canceled' });
+      await orderService.updateOrderStatus(orderData.id, {status: 'canceled'});
       console.log('Pesanan ditolak');
       navigation.navigate('Home');
     } catch (error) {
@@ -82,7 +100,9 @@ const NewOrderScreen = ({navigation, route}) => {
 
   const handleSendOrder = async () => {
     try {
-      await orderService.updateOrderStatus(orderData.id, { status: 'out_for_delivery' });
+      await orderService.updateOrderStatus(orderData.id, {
+        status: 'out_for_delivery',
+      });
       console.log('Pesanan dikirim');
       navigation.goBack();
     } catch (error) {
@@ -128,11 +148,25 @@ const NewOrderScreen = ({navigation, route}) => {
         {/* Order Items */}
         <View style={styles.orderItemsContainer}>
           {items.map((item, index) => (
-            <View key={item.id} style={[styles.orderItem, index === items.length - 1 && {borderBottomWidth: 0}]}>
+            <View
+              key={item.id}
+              style={[
+                styles.orderItem,
+                index === items.length - 1 && {borderBottomWidth: 0},
+              ]}>
               <View style={styles.itemHeader}>
-                <Image source={item.Product?.images?.[0] ? {uri: item.Product.images[0]} : require('../../assets/food1.png')} style={styles.itemImage} />
+                <Image
+                  source={
+                    item.Product?.images?.[0]
+                      ? {uri: item.Product.images[0]}
+                      : require('../../assets/food1.png')
+                  }
+                  style={styles.itemImage}
+                />
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.Product?.name || 'Produk'}</Text>
+                  <Text style={styles.itemName}>
+                    {item.Product?.name || 'Produk'}
+                  </Text>
                   <Text style={styles.itemPrice}>
                     Rp {(item.price || 0).toLocaleString('id-ID')}/ Item
                   </Text>
@@ -186,9 +220,13 @@ const NewOrderScreen = ({navigation, route}) => {
         <View style={styles.proofContainer}>
           <Text style={styles.proofTitle}>Bukti Pembayaran</Text>
           <View style={styles.proofImageContainer}>
-            <Image 
-              source={orderData.payment_proof ? {uri: orderData.payment_proof} : require('../../assets/paymentSample.png')} 
-              style={styles.proofImage} 
+            <Image
+              source={
+                orderData.payment_proof
+                  ? {uri: orderData.payment_proof}
+                  : require('../../assets/paymentSample.png')
+              }
+              style={styles.proofImage}
             />
           </View>
         </View>

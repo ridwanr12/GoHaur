@@ -8,52 +8,151 @@ import {
   Image,
   StatusBar,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
+import {orderService} from '../api';
 
 const CurrentOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
 
-  // Jika tidak ada data order, tampilkan pesan kosong
   if (!orderData) {
     return (
-      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
-        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>Pesanan tidak ditemukan.</Text>
-        <TouchableOpacity style={{marginTop: 20, padding: 10, backgroundColor: '#FF6B35', borderRadius: 10}} onPress={() => navigation.goBack()}>
-          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>Kembali</Text>
+      <SafeAreaView
+        style={[
+          styles.container,
+          {justifyContent: 'center', alignItems: 'center'},
+        ]}>
+        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>
+          Pesanan tidak ditemukan.
+        </Text>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            padding: 10,
+            backgroundColor: '#FF6B35',
+            borderRadius: 10,
+          }}
+          onPress={() => navigation.goBack()}>
+          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>
+            Kembali
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // Format data item dari response backend yang bentuknya order_items
   const items = orderData.order_items || [];
-  const address = orderData.shipping_address || orderData.User?.location || 'Alamat tidak diketahui';
-  const status = orderData.status || 'Menunggu Diproses';
-  const buyer = orderData.User?.name || 'Pembeli';
+  const address =
+    orderData.shipping_address ||
+    orderData.User?.location ||
+    'Alamat tidak diketahui';
+  const status = orderData.status || 'pending';
+  const buyerName = orderData.User?.name || 'Pembeli';
   const deliveryFee = orderData.shipping_cost || 0;
-  const serviceFee = 2000; // Contoh statis, jika backend belum menyediakan
+  const serviceFee = 2000;
+  const courier = orderData.Courier || null; // data kurir dari backend
 
-  // Menghitung total harga produk
   const calculateProductTotal = () => {
-    return items.reduce(
-      (total, item) => total + (item.price * item.quantity),
-      0,
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  const calculateGrandTotal = () => {
+    return (
+      orderData.total_amount ||
+      calculateProductTotal() + deliveryFee + serviceFee
     );
   };
 
-  // Menghitung total keseluruhan
-  const calculateGrandTotal = () => {
-    return orderData.total_amount || (calculateProductTotal() + deliveryFee + serviceFee);
-  };
-
-  // Format currency
   const formatCurrency = value => {
     return `Rp ${value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
   };
 
-  const handleBack = () => {
-    navigation.goBack();
+  // =============================================
+  // Warna status dinamis sesuai kondisi
+  // =============================================
+  const getStatusColor = () => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'menunggu diproses':
+        return '#FF9800'; // orange
+      case 'approved':
+      case 'sedang diproses':
+        return '#FF9800'; // orange
+      case 'out_for_delivery':
+      case 'dikirim':
+        return '#2196F3'; // biru
+      case 'delivered':
+      case 'selesai':
+        return '#4CAF50'; // hijau
+      case 'canceled':
+        return '#F44336'; // merah
+      default:
+        return '#FF9800';
+    }
+  };
+
+  // =============================================
+  // Label status yang ditampilkan ke user
+  // =============================================
+  const getStatusLabel = () => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Menunggu Diproses';
+      case 'approved':
+        return 'Sedang Diproses';
+      case 'out_for_delivery':
+        return 'Dikirim';
+      case 'delivered':
+        return 'Selesai';
+      case 'canceled':
+        return 'Dibatalkan';
+      default:
+        return status;
+    }
+  };
+
+  // =============================================
+  // Tombol aksi buyer - sesuai foto
+  // =============================================
+  const handlePesananTiba = async () => {
+    try {
+      await orderService.updateOrderStatus(orderData.id, {
+        status: 'delivered',
+      });
+      navigation.replace('CurrentOrder', {
+        orderData: {...orderData, status: 'delivered'},
+      });
+    } catch (error) {
+      Alert.alert('Gagal', 'Tidak dapat mengkonfirmasi pesanan tiba.');
+    }
+  };
+
+  const handleReviewPesanan = () => {
+    navigation.navigate('ReviewOrder', {orderData});
+  };
+
+  const renderActionButton = () => {
+    switch (status.toLowerCase()) {
+      case 'out_for_delivery':
+        return (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handlePesananTiba}>
+            <Text style={styles.actionButtonText}>Pesanan Tiba</Text>
+          </TouchableOpacity>
+        );
+      case 'delivered':
+        return (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleReviewPesanan}>
+            <Text style={styles.actionButtonText}>Review Pesanan</Text>
+          </TouchableOpacity>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -62,7 +161,9 @@ const CurrentOrderScreen = ({navigation, route}) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
           <Image
             source={require('../../assets/back.png')}
             style={styles.backButtonIcon}
@@ -71,32 +172,72 @@ const CurrentOrderScreen = ({navigation, route}) => {
         <Text style={styles.headerTitle}>Detail Pesanan</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Address Section */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{paddingBottom: 100}}>
+        {/* Address */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionLabel}>Lokasi/ Alamat Tuju:</Text>
           <Text style={styles.addressText}>{address}</Text>
         </View>
 
-        {/* Status Section */}
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusLabel}>Status:</Text>
-          <Text style={styles.statusValue}>{status}</Text>
+        {/* Status - warna dinamis + Kurir dalam 1 card */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>Status:</Text>
+            <Text style={[styles.statusValue, {color: getStatusColor()}]}>
+              {getStatusLabel()}
+            </Text>
+          </View>
+
+          {/* Kurir - hanya muncul saat dikirim atau selesai */}
+          {(status.toLowerCase() === 'out_for_delivery' ||
+            status.toLowerCase() === 'delivered') &&
+            courier && (
+              <>
+                <Text style={styles.courierSectionLabel}>Kurir:</Text>
+                <View style={styles.courierCard}>
+                  <Image
+                    source={
+                      courier.photo
+                        ? {uri: courier.photo}
+                        : require('../../assets/profilePic.png')
+                    }
+                    style={styles.courierPhoto}
+                  />
+                  <View style={styles.courierInfo}>
+                    <Text style={styles.courierName}>{courier.name}</Text>
+                    <Text style={styles.courierPhone}>{courier.phone}</Text>
+                    <Text style={styles.courierCode}>{courier.code}</Text>
+                  </View>
+                </View>
+              </>
+            )}
         </View>
 
         {/* Buyer Info */}
         <View style={styles.buyerContainer}>
           <Text style={styles.buyerLabel}>Nama Pembeli:</Text>
-          <Text style={styles.buyerValue}>{buyer}</Text>
+          <Text style={styles.buyerValue}>{buyerName}</Text>
         </View>
 
         {/* Order Items */}
         {items.map((item, index) => (
-          <View key={item.id} style={styles.itemContainer}>
+          <View key={item.id || index} style={styles.itemContainer}>
             <View style={styles.itemHeader}>
-              <Image source={item.Product?.images?.[0] ? {uri: item.Product.images[0]} : require('../../assets/food1.png')} style={styles.itemImage} />
+              <Image
+                source={
+                  item.Product?.images?.[0]
+                    ? {uri: item.Product.images[0]}
+                    : require('../../assets/food1.png')
+                }
+                style={styles.itemImage}
+              />
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.Product?.name || 'Produk'}</Text>
+                <Text style={styles.itemName}>
+                  {item.Product?.name || 'Produk'}
+                </Text>
                 <Text style={styles.itemPrice}>
                   Rp {(item.price || 0).toLocaleString('id-ID')}/ Item
                 </Text>
@@ -151,16 +292,26 @@ const CurrentOrderScreen = ({navigation, route}) => {
           </View>
         </View>
 
+        {/* Bukti Pembayaran */}
         <View style={styles.proofContainer}>
           <Text style={styles.proofTitle}>Bukti Pembayaran</Text>
           <View style={styles.proofImageContainer}>
-            <Image 
-              source={orderData.payment_proof ? {uri: orderData.payment_proof} : require('../../assets/paymentSample.png')} 
-              style={styles.proofImage} 
+            <Image
+              source={
+                orderData.payment_proof
+                  ? {uri: orderData.payment_proof}
+                  : require('../../assets/paymentSample.png')
+              }
+              style={styles.proofImage}
             />
           </View>
         </View>
       </ScrollView>
+
+      {/* Action Button - fixed di bawah */}
+      {renderActionButton() && (
+        <View style={styles.bottomButtonContainer}>{renderActionButton()}</View>
+      )}
     </SafeAreaView>
   );
 };
@@ -203,10 +354,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -230,10 +378,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -247,7 +392,51 @@ const styles = StyleSheet.create({
   statusValue: {
     fontSize: 14,
     fontFamily: fonts.poppinsMedium,
-    color: '#FF9800',
+  },
+  // Kurir
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10, // jarak ke info kurir kalau ada
+  },
+  courierSectionLabel: {
+    fontSize: 14,
+    fontFamily: fonts.poppinsMedium,
+    color: '#000',
+    marginBottom: 10,
+    marginTop: 5,
+  },
+  courierCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 10,
+  },
+  courierPhoto: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  courierInfo: {
+    flex: 1,
+  },
+  courierName: {
+    fontSize: 14,
+    fontFamily: fonts.poppinsMedium,
+    color: '#000',
+  },
+  courierPhone: {
+    fontSize: 12,
+    fontFamily: fonts.poppinsRegular,
+    color: '#666',
+  },
+  courierCode: {
+    fontSize: 12,
+    fontFamily: fonts.poppinsBold,
+    color: '#000',
   },
   buyerContainer: {
     flexDirection: 'row',
@@ -257,10 +446,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -282,10 +468,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -374,10 +557,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -417,12 +597,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 15,
-    marginBottom: 45,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -444,15 +621,25 @@ const styles = StyleSheet.create({
     height: 320,
     resizeMode: 'contain',
   },
-  okButton: {
-    backgroundColor: '#0066CC',
-    padding: 10,
+  // Bottom action button
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 15,
+    backgroundColor: 'transparent',
+  },
+  actionButton: {
+    backgroundColor: '#FF6B35',
+    borderRadius: 15,
+    padding: 18,
     alignItems: 'center',
   },
-  okButtonText: {
+  actionButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontFamily: fonts.poppinsMedium,
+    fontSize: 16,
+    fontFamily: fonts.poppinsBold,
   },
 });
 

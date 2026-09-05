@@ -8,6 +8,12 @@ import SellerNavigator from './seller-navigator';
 import CourierNavigator from './courier-navigator';
 import colors from '../constants/styles'; // asumsi ada file colors
 
+// ========================================
+// 🔧 DEV ONLY - Ubah sesuai kebutuhan testing
+const DEV_BYPASS = __DEV__ && true; // ganti false jika mau balik normal
+const DEV_ROLE = 'seller'; // 'buyer' | 'seller' | 'courier'
+// ========================================
+
 /**
  * RootNavigator adalah komponen cerdas pemisah navigasi berdasarkan Role pengguna.
  * Kita tidak meletakkan semua rute (layar) di satu tempat agar keamanannya terjamin.
@@ -17,6 +23,19 @@ import colors from '../constants/styles'; // asumsi ada file colors
 const RootNavigator = () => {
   // Mengambil state global dari AuthContext
   const {isAuthenticated, isLoading, user} = useAuth();
+
+  // Bypass semua logic auth saat development
+  if (DEV_BYPASS) {
+    switch (DEV_ROLE) {
+      case 'seller':
+        return <SellerNavigator />;
+      case 'courier':
+        return <CourierNavigator />;
+      case 'buyer':
+      default:
+        return <BuyerNavigator />;
+    }
+  }
 
   // Saat pertama aplikasi dibuka, isLoading bernilai true (mengecek storage)
   if (isLoading) {
@@ -33,7 +52,7 @@ const RootNavigator = () => {
   }
 
   // Jika terotentikasi, cek role dari pengguna
-  const role = user?.role || user?.role_name || 'buyer'; // fallback keamanan jika data role kosong
+  const role = user?.roles || user?.role_name || 'buyer'; // fallback keamanan jika data role kosong
 
   // Render Navigator yang berbeda sesuai dengan role masing-masing
   switch (role.toLowerCase()) {

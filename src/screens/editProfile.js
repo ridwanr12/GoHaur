@@ -46,7 +46,9 @@ const EditProfileScreen = ({navigation, route}) => {
       const storedUserData = await getUserData();
       const roles = userData?.roles ?? storedUserData?.roles ?? [];
       const roleNames = (Array.isArray(roles) ? roles : [roles])
-        .map(r => (typeof r === 'string' ? r : r?.name || r?.role || r?.role_name))
+        .map(r =>
+          typeof r === 'string' ? r : r?.name || r?.role || r?.role_name,
+        )
         .filter(Boolean)
         .map(r => r.toLowerCase());
 
@@ -61,10 +63,10 @@ const EditProfileScreen = ({navigation, route}) => {
       const role = roleNames.includes('seller')
         ? 'seller'
         : roleNames.includes('courier')
-          ? 'courier'
-          : roleNames.includes('buyer')
-            ? 'buyer'
-            : roleFromScalar;
+        ? 'courier'
+        : roleNames.includes('buyer')
+        ? 'buyer'
+        : roleFromScalar;
 
       setUserRole(role);
 
@@ -218,8 +220,8 @@ const EditProfileScreen = ({navigation, route}) => {
           {userRole === 'seller'
             ? 'Detail Toko Saya'
             : userRole === 'courier'
-              ? 'Detail Profil dan Kendaraan'
-              : 'Detail Profil dan Alamat'}
+            ? 'Detail Profil dan Kendaraan'
+            : 'Detail Profil dan Alamat'}
         </Text>
       </View>
 
@@ -268,7 +270,9 @@ const EditProfileScreen = ({navigation, route}) => {
                 value={profile.description}
                 multiline={true}
                 numberOfLines={4}
-                onChangeText={text => setProfile({...profile, description: text})}
+                onChangeText={text =>
+                  setProfile({...profile, description: text})
+                }
               />
             </>
           ) : userRole === 'courier' ? (
@@ -301,7 +305,9 @@ const EditProfileScreen = ({navigation, route}) => {
                 style={styles.inputSeller}
                 value={profile.plateNumber}
                 autoCapitalize="characters"
-                onChangeText={text => setProfile({...profile, plateNumber: text})}
+                onChangeText={text =>
+                  setProfile({...profile, plateNumber: text})
+                }
               />
             </>
           ) : (
@@ -329,14 +335,31 @@ const EditProfileScreen = ({navigation, route}) => {
                 onChangeText={text => setProfile({...profile, phone: text})}
               />
 
-              <Text style={styles.label}>Alamat Kirim</Text>
+              {/* <Text style={styles.label}>Alamat Kirim</Text>
               <TextInput
                 style={styles.inputlocation}
                 value={profile.location}
                 multiline={true}
                 numberOfLines={3}
                 onChangeText={text => setProfile({...profile, location: text})}
-              />
+              /> */}
+              <TouchableOpacity
+                style={styles.addressCard}
+                onPress={handleEditlocation}
+                activeOpacity={0.9}>
+                <View style={styles.addressCardHeader}>
+                  <Text style={styles.addressCardHeaderText}>Alamat Kirim</Text>
+                  <Image
+                    source={require('../../assets/editProfile.png')}
+                    style={styles.addressCardEditIcon}
+                  />
+                </View>
+                <View style={styles.addressCardBody}>
+                  <Text style={styles.addressCardBodyText}>
+                    {profile.location || '-'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </>
           )}
         </View>

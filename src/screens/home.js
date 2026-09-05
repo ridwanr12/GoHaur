@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -27,15 +27,18 @@ const MenuItem = ({item, restaurant, navigation}) => {
     });
   };
 
-  const imageSource = item.images && item.images.length > 0
-    ? {uri: item.images[0]}
-    : require('../../assets/food1.png');
+  const imageSource =
+    item.images && item.images.length > 0
+      ? {uri: item.images[0]}
+      : require('../../assets/food1.png');
 
   return (
     <TouchableOpacity onPress={handleProductPress}>
       <View style={styles.menuItem}>
         <Image source={imageSource} style={styles.menuImage} />
-        <Text style={styles.menuName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.menuName} numberOfLines={1}>
+          {item.name}
+        </Text>
         <View style={styles.menuPriceContainer}>
           <Text style={styles.menuPrice}>Rp {item.price}</Text>
           <Text style={styles.menuSold}>{item.stock} stok</Text>
@@ -45,17 +48,21 @@ const MenuItem = ({item, restaurant, navigation}) => {
   );
 };
 
-
 // Komponen untuk menampilkan restoran
 const RestaurantCard = ({item, navigation}) => {
   const handleRestaurant = () => {
     navigation.navigate('Store', {storeData: item});
   };
 
-  const ratingObj = item.Ratings && item.Ratings.length > 0 ? item.Ratings[0] : { average_rating: 0, amount: 0 };
-  const ratingText = ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
-  const totalOrdersText = ratingObj.amount > 0 ? `${ratingObj.amount} ulasan` : '0 ulasan';
-  
+  const ratingObj =
+    item.Ratings && item.Ratings.length > 0
+      ? item.Ratings[0]
+      : {average_rating: 0, amount: 0};
+  const ratingText =
+    ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
+  const totalOrdersText =
+    ratingObj.amount > 0 ? `${ratingObj.amount} ulasan` : '0 ulasan';
+
   const menuList = item.Products || [];
 
   return (
@@ -63,10 +70,15 @@ const RestaurantCard = ({item, navigation}) => {
       <TouchableOpacity onPress={handleRestaurant}>
         <View style={styles.restaurantHeader}>
           <View style={styles.restaurantInfo}>
-            <Image source={require('../../assets/restaurant.png')} style={styles.restaurantImage} />
+            <Image
+              source={require('../../assets/restaurant.png')}
+              style={styles.restaurantImage}
+            />
             <View>
               <Text style={styles.restaurantName}>{item.name}</Text>
-              <Text style={styles.restaurantLocation}>{item.description || 'Deskripsi toko'}</Text>
+              <Text style={styles.restaurantLocation}>
+                {item.description || 'Deskripsi toko'}
+              </Text>
             </View>
           </View>
           <View style={styles.ratingContainer}>
@@ -112,7 +124,10 @@ const HomeScreen = ({navigation}) => {
     const fetchStores = async () => {
       try {
         // Memanggil service untuk GET /api/stores
-        const response = await storeService.getAllStores({ showProducts: true, showRating: true });
+        const response = await storeService.getAllStores({
+          showProducts: true,
+          showRating: true,
+        });
         if (response && response.data && response.data.stores) {
           // Menyimpan data dari server ke state lokal
           setStores(response.data.stores);
@@ -123,7 +138,7 @@ const HomeScreen = ({navigation}) => {
         setLoading(false); // Mematikan animasi loading
       }
     };
-    
+
     // Listener 'focus' memastikan bahwa setiap kali pengguna membuka kembali halaman Home (navigasi balik),
     // aplikasi akan mengambil data toko terbaru dari database backend.
     const unsubscribe = navigation.addListener('focus', () => {
@@ -160,8 +175,9 @@ const HomeScreen = ({navigation}) => {
       </View>
 
       {loading ? (
-        <View style={[styles.restaurantList, { flex: 1, justifyContent: 'center' }]}>
-           <ActivityIndicator size="large" color="#FF6B35" />
+        <View
+          style={[styles.restaurantList, {flex: 1, justifyContent: 'center'}]}>
+          <ActivityIndicator size="large" color="#FF6B35" />
         </View>
       ) : (
         <FlatList
@@ -172,7 +188,11 @@ const HomeScreen = ({navigation}) => {
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.restaurantList}
-          ListEmptyComponent={<Text style={{textAlign: 'center', marginTop: 20}}>Belum ada toko yang tersedia</Text>}
+          ListEmptyComponent={
+            <Text style={{textAlign: 'center', marginTop: 20}}>
+              Belum ada toko yang tersedia
+            </Text>
+          }
         />
       )}
 

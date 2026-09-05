@@ -8,7 +8,7 @@ import {
   Image,
   StatusBar,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {feedbackService} from '../api';
@@ -40,7 +40,7 @@ const ReviewScreen = ({navigation, route}) => {
         setLoading(false);
       }
     };
-    
+
     fetchReviews();
   }, [storeData.id]);
 
@@ -92,34 +92,51 @@ const ReviewScreen = ({navigation, route}) => {
         <Text style={styles.sectionTitle}>Semua Review</Text>
 
         {loading ? (
-          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-             <ActivityIndicator size="large" color="#FF6B35" />
+          <View
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <ActivityIndicator size="large" color="#FF6B35" />
           </View>
         ) : reviews.length === 0 ? (
-          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <Text style={{fontFamily: fonts.poppinsRegular, color: '#666'}}>Belum ada review untuk toko ini.</Text>
+          <View
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{fontFamily: fonts.poppinsRegular, color: '#666'}}>
+              Belum ada review untuk toko ini.
+            </Text>
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>
             {reviews.map(review => {
               const dateObj = new Date(review.created_at);
-              const dateStr = !isNaN(dateObj.getTime()) 
-                ? dateObj.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) 
+              const dateStr = !isNaN(dateObj.getTime())
+                ? dateObj.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })
                 : 'Tanggal tidak diketahui';
-                
+
               return (
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
-                    <Image source={require('../../assets/profilePic.png')} style={styles.reviewerImage} />
+                    <Image
+                      source={require('../../assets/profilePic.png')}
+                      style={styles.reviewerImage}
+                    />
                     <View style={styles.reviewerInfo}>
-                      <Text style={styles.reviewerName}>{review.User?.name || 'Anonim'}</Text>
-                      <Text style={styles.reviewText}>{review.description}</Text>
+                      <Text style={styles.reviewerName}>
+                        {review.User?.name || 'Anonim'}
+                      </Text>
+                      <Text style={styles.reviewText}>
+                        {review.description}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.reviewFooter}>
                     <Text style={styles.reviewDate}>{dateStr}</Text>
                     <View style={styles.reviewRating}>
-                      <Text style={styles.reviewRatingText}>{review.rating}.0/5.0</Text>
+                      <Text style={styles.reviewRatingText}>
+                        {review.rating}.0/5.0
+                      </Text>
                       <Image
                         source={require('../../assets/star.png')}
                         style={styles.reviewStarIcon}
