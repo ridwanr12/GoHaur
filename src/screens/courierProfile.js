@@ -13,13 +13,13 @@ import {
 import fonts from '../constants/styles';
 import {profileService} from '../api';
 import {removeToken, removeUserData} from '../utils/tokenStorage';
-import {useAuth} from '../context/AuthContext'; // tambah import
+import {useAuth} from '../context/AuthContext'; // tambah
 
-const SellerProfileScreen = ({navigation}) => {
-  const {logout} = useAuth();
+const CourierProfileScreen = ({navigation}) => {
+  const {logout} = useAuth(); // tambah
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const fadeAnim = useRef(new Animated.Value(1)).current; // nilai opacity awal 1
+  const fadeAnim = useRef(new Animated.Value(1)).current; // tambah
 
   const fetchProfileData = async () => {
     setIsLoading(true);
@@ -45,29 +45,23 @@ const SellerProfileScreen = ({navigation}) => {
   //   try {
   //     await removeToken();
   //     await removeUserData();
-  //     await logout(); // ini yang trigger RootNavigator otomatis ke AuthNavigator
+  //     navigation.navigate('Signin');
   //   } catch (error) {
   //     console.error('Logout error:', error);
   //   }
   // };
   const handleLogout = () => {
-    // Step 1 - Konfirmasi dulu
     Alert.alert('Konfirmasi Logout', 'Apakah kamu yakin ingin keluar?', [
-      {
-        text: 'Batal',
-        style: 'cancel',
-      },
+      {text: 'Batal', style: 'cancel'},
       {
         text: 'Logout',
         style: 'destructive',
-        onPress: async () => {
-          // Step 2 - Animasi fade out
+        onPress: () => {
           Animated.timing(fadeAnim, {
-            toValue: 0, // opacity ke 0
-            duration: 500, // 500ms
+            toValue: 0,
+            duration: 500,
             useNativeDriver: true,
           }).start(async () => {
-            // Step 3 - Setelah animasi selesai, baru logout
             await removeToken();
             await removeUserData();
             await logout();
@@ -87,7 +81,6 @@ const SellerProfileScreen = ({navigation}) => {
   }
 
   return (
-    // Wrap SafeAreaView dengan Animated.View
     <Animated.View style={[{flex: 1}, {opacity: fadeAnim}]}>
       <SafeAreaView style={styles.container}>
         {/* Header */}
@@ -119,7 +112,9 @@ const SellerProfileScreen = ({navigation}) => {
         <TouchableOpacity
           style={styles.detailButton}
           onPress={() => navigation.navigate('ProfileDetail')}>
-          <Text style={styles.detailButtonText}>Detail Toko Saya</Text>
+          <Text style={styles.detailButtonText}>
+            Detail Profil dan Kendaraan
+          </Text>
         </TouchableOpacity>
 
         {/* Logout Button */}
@@ -131,17 +126,8 @@ const SellerProfileScreen = ({navigation}) => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        {/* Bottom Navigation - 3 item khusus seller */}
+        {/* Bottom Navigation - 2 item khusus courier */}
         <View style={styles.bottomNavigation}>
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => navigation.navigate('SellerHome')}>
-            <Image
-              source={require('../../assets/home.png')}
-              style={styles.navIcon}
-            />
-            <Text style={styles.navText}>Toko</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigation.navigate('Order')}>
@@ -293,4 +279,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SellerProfileScreen;
+export default CourierProfileScreen;

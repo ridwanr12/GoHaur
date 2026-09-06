@@ -77,7 +77,8 @@ export const AuthProvider = ({children}) => {
    */
   const logout = async () => {
     try {
-      await authService.logout();
+      // comment kalau backend tidak punya endpoint logout
+      // await authService.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

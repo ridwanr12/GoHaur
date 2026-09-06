@@ -117,12 +117,6 @@ const SigninScreen = ({navigation}) => {
         <TouchableOpacity style={styles.button} onPress={handleSignin}>
           <Text style={styles.buttonText}>Masuk</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleViewReview}>
-          <Text style={styles.buttonText}>Review</Text>
-        </TouchableOpacity>
-        {/* <TouchableOpacity style={styles.button} onPress={handleViewCourierProfileDetails}>
-          <Text style={styles.buttonText}>Edit Profile Kurir</Text>
-        </TouchableOpacity> */}
       </ScrollView>
     </SafeAreaView>
   );

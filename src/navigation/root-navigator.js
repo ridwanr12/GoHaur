@@ -10,8 +10,8 @@ import colors from '../constants/styles'; // asumsi ada file colors
 
 // ========================================
 // 🔧 DEV ONLY - Ubah sesuai kebutuhan testing
-const DEV_BYPASS = __DEV__ && true; // ganti false jika mau balik normal
-const DEV_ROLE = 'seller'; // 'buyer' | 'seller' | 'courier'
+const DEV_BYPASS = __DEV__ && false; // ganti false jika mau balik normal
+const DEV_ROLE = 'courier'; // 'buyer' | 'seller' | 'courier'
 // ========================================
 
 /**
@@ -51,10 +51,27 @@ const RootNavigator = () => {
     return <AuthNavigator />;
   }
 
-  // Jika terotentikasi, cek role dari pengguna
-  const role = user?.roles || user?.role_name || 'buyer'; // fallback keamanan jika data role kosong
+  // // Jika terotentikasi, cek role dari pengguna
+  // const role = user?.role || user?.role_name || 'buyer'; // fallback keamanan jika data role kosong
 
-  // Render Navigator yang berbeda sesuai dengan role masing-masing
+  // // Render Navigator yang berbeda sesuai dengan role masing-masing
+  // switch (role.toLowerCase()) {
+  //   case 'seller':
+  //     return <SellerNavigator />;
+  //   case 'courier':
+  //     return <CourierNavigator />;
+  //   case 'buyer':
+  //   default:
+  //     // Default untuk pembeli, semua navigasi berpusat di buyer-navigator
+  //     return <BuyerNavigator />;
+  // }
+
+  // Jika terotentikasi, cek role dari pengguna
+  const roles = user?.roles; // ["buyer"] atau ["seller"] atau ["courier"]
+  const role = Array.isArray(roles)
+    ? roles[0]
+    : user?.role || user?.role_name || 'buyer';
+
   switch (role.toLowerCase()) {
     case 'seller':
       return <SellerNavigator />;
@@ -62,7 +79,6 @@ const RootNavigator = () => {
       return <CourierNavigator />;
     case 'buyer':
     default:
-      // Default untuk pembeli, semua navigasi berpusat di buyer-navigator
       return <BuyerNavigator />;
   }
 };

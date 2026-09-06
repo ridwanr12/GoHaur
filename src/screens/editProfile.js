@@ -518,9 +518,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 18,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#FF6B35',
   },
   addressCardHeader: {
     backgroundColor: '#FF6B35',

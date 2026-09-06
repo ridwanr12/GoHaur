@@ -24,12 +24,12 @@ const Stack = createNativeStackNavigator();
  */
 const BuyerNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{headerShown: false}}
-      // tambah ini buat tes screen langsung
-      initialRouteName={__DEV__ ? 'CurrentOrder' : 'Home'}>
+    <Stack.Navigator screenOptions={{headerShown: false}}>
+      {/* <Stack.Navigator screenOptions={{headerShown: false}}
+      // tambah ini buat tes screen langsung */
+      /* initialRouteName={__DEV__ ? 'CurrentOrder' : 'Home'}> */}
       {/* // buyer-navigator.js */}
-      <Stack.Screen
+      {/* <Stack.Screen
         name="CurrentOrder"
         component={CurrentOrderScreen}
         initialParams={{
@@ -58,14 +58,14 @@ const BuyerNavigator = () => {
             ],
           },
         }}
-      />
+      /> */}
 
       {/* Setiap Stack.Screen mewakili sebuah halaman. 
           name="..." adalah identifier unik yang digunakan untuk berpindah halaman (misal: navigation.navigate('Cart')) */}
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Cart" component={CartScreen} />
       <Stack.Screen name="Order" component={OrderScreen} />
-      {/* <Stack.Screen name="CurrentOrder" component={CurrentOrderScreen} /> */}
+      <Stack.Screen name="CurrentOrder" component={CurrentOrderScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
       <Stack.Screen name="Store" component={StoreScreen} />

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {profileService} from '../api';
@@ -17,10 +18,13 @@ import {
   getUserData,
   getUserId,
 } from '../utils/tokenStorage';
+import {useAuth} from '../context/AuthContext'; // tambah
 
 const ProfileScreen = ({navigation}) => {
+  const {logout} = useAuth(); // tambah
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const fadeAnim = useRef(new Animated.Value(1)).current; // tambah
 
   // Fungsi untuk mengambil data profil
   const fetchProfileData = async () => {
@@ -95,16 +99,36 @@ const ProfileScreen = ({navigation}) => {
   };
 
   // Fungsi untuk logout
-  const handleLogout = async () => {
-    try {
-      // Hapus token dan data user dari penyimpanan lokal
-      await removeToken();
-      await removeUserData();
-      // Navigasi ke halaman login
-      navigation.navigate('Signin');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  // const handleLogout = async () => {
+  //   try {
+  //     // Hapus token dan data user dari penyimpanan lokal
+  //     await removeToken();
+  //     await removeUserData();
+  //     // Navigasi ke halaman login
+  //     navigation.navigate('Signin');
+  //   } catch (error) {
+  //     console.error('Logout error:', error);
+  //   }
+  // };
+  const handleLogout = () => {
+    Alert.alert('Konfirmasi Logout', 'Apakah kamu yakin ingin keluar?', [
+      {text: 'Batal', style: 'cancel'},
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: () => {
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }).start(async () => {
+            await removeToken();
+            await removeUserData();
+            await logout();
+          });
+        },
+      },
+    ]);
   };
 
   // Fungsi untuk melihat detail profil
@@ -113,6 +137,14 @@ const ProfileScreen = ({navigation}) => {
   };
 
   // Tampilkan loading spinner saat data sedang diambil
+  // if (isLoading) {
+  //   return (
+  //     <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+  //       <ActivityIndicator size="large" color="#FF6B35" />
+  //       <Text style={styles.loadingText}>Memuat data profil...</Text>
+  //     </SafeAreaView>
+  //   );
+  // }
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
@@ -123,84 +155,86 @@ const ProfileScreen = ({navigation}) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profil</Text>
-        <TouchableOpacity onPress={handleNotification}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.profileContainer}>
-        <View style={styles.profileImageContainer}>
-          <Image
-            source={
-              userData?.profileImage
-                ? {uri: userData.profileImage}
-                : require('../../assets/profilePic.png')
-            }
-            style={styles.profileImage}
-          />
+    <Animated.View style={[{flex: 1}, {opacity: fadeAnim}]}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profil</Text>
+          <TouchableOpacity onPress={handleNotification}>
+            <Image
+              source={require('../../assets/notification.png')}
+              style={styles.notificationIcon}
+            />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.userName}>
-          {userData?.username || 'Nama Pengguna'}
-        </Text>
-        <Text style={styles.userEmail}>
-          {userData?.email || 'email@example.com'}
-        </Text>
-      </View>
 
-      <TouchableOpacity
-        style={styles.detailButton}
-        onPress={handleViewProfileDetails}>
-        <Text style={styles.detailButtonText}>Detail Profil dan Alamat</Text>
-      </TouchableOpacity>
+        <View style={styles.profileContainer}>
+          <View style={styles.profileImageContainer}>
+            <Image
+              source={
+                userData?.profileImage
+                  ? {uri: userData.profileImage}
+                  : require('../../assets/profilePic.png')
+              }
+              style={styles.profileImage}
+            />
+          </View>
+          <Text style={styles.userName}>
+            {userData?.username || 'Nama Pengguna'}
+          </Text>
+          <Text style={styles.userEmail}>
+            {userData?.email || 'email@example.com'}
+          </Text>
+        </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Image
-          source={require('../../assets/logoutIcon.png')}
-          style={styles.logoutIcon}
-        />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity style={styles.navItem} onPress={handleHome}>
-          <Image
-            source={require('../../assets/home.png')}
-            style={styles.navIcon}
-          />
-          <Text style={styles.navText}>Beranda</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={handleCart}>
-          <Image
-            source={require('../../assets/cart.png')}
-            style={styles.navIcon}
-          />
-          <Text style={styles.navText}>Keranjang</Text>
-        </TouchableOpacity>
         <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Order')}>
-          <Image
-            source={require('../../assets/order.png')}
-            style={styles.navIcon}
-          />
-          <Text style={styles.navText}>Pesanan</Text>
+          style={styles.detailButton}
+          onPress={handleViewProfileDetails}>
+          <Text style={styles.detailButtonText}>Detail Profil dan Alamat</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={handleOrder}>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Image
-            source={require('../../assets/profileActive.png')}
-            style={styles.navIcon}
+            source={require('../../assets/logoutIcon.png')}
+            style={styles.logoutIcon}
           />
-          <Text style={[styles.navText, styles.activeNavText]}>Profil</Text>
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+
+        {/* Bottom Navigation */}
+        <View style={styles.bottomNavigation}>
+          <TouchableOpacity style={styles.navItem} onPress={handleHome}>
+            <Image
+              source={require('../../assets/home.png')}
+              style={styles.navIcon}
+            />
+            <Text style={styles.navText}>Beranda</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={handleCart}>
+            <Image
+              source={require('../../assets/cart.png')}
+              style={styles.navIcon}
+            />
+            <Text style={styles.navText}>Keranjang</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => navigation.navigate('Order')}>
+            <Image
+              source={require('../../assets/order.png')}
+              style={styles.navIcon}
+            />
+            <Text style={styles.navText}>Pesanan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={handleOrder}>
+            <Image
+              source={require('../../assets/profileActive.png')}
+              style={styles.navIcon}
+            />
+            <Text style={[styles.navText, styles.activeNavText]}>Profil</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Animated.View>
   );
 };
 
