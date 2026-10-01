@@ -187,7 +187,8 @@ const StoreScreen = ({navigation, route}) => {
                   <View style={styles.productInfo}>
                     <Text style={styles.productName}>{product.name}</Text>
                     <Text style={styles.productPrice}>
-                      {formatCurrency(product.price)}/ Item
+                      Rp {parseFloat(product.price).toLocaleString('id-ID')}/
+                      Item
                     </Text>
                     <Text style={styles.productSold}>{product.stock} stok</Text>
                   </View>
@@ -276,7 +277,9 @@ const StoreScreen = ({navigation, route}) => {
                         {selectedProduct.stock} stok
                       </Text>
                       <Text style={styles.modalProductPrice}>
-                        {formatCurrency(selectedProduct.price)}/ Item
+                        {/* {formatCurrency(selectedProduct.price)}/ Item */}
+                        Rp {parseFloat(selectedProduct.price).toLocaleString('id-ID')}/
+                      Item
                       </Text>
 
                       <Text style={styles.modalDescriptionTitle}>

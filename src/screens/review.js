@@ -18,7 +18,7 @@ const ReviewScreen = ({navigation, route}) => {
     id: '1',
     name: 'Sate Joko Khas Haur Pancuh',
     location: 'Blok A No. 12',
-    totalSold: '143 Item Terjual',
+    totalSold: '14123123 Item Terjual',
     rating: '4.5/5.0',
   };
 

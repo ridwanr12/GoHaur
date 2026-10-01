@@ -22,7 +22,6 @@ const SellerHomeScreen = ({navigation}) => {
   useEffect(() => {
     const fetchMyStore = async () => {
       try {
-        // getMyStore tidak perlu params, backend auto filter by token
         const response = await storeService.getMyStore();
         if (response?.data?.store) {
           const store = response.data.store;
@@ -31,6 +30,11 @@ const SellerHomeScreen = ({navigation}) => {
         }
       } catch (error) {
         console.error('Failed to fetch store:', error);
+        // tambah ini aja
+        if (error.response?.status === 404) {
+          setStoreData(null);
+          setProducts([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -38,7 +42,7 @@ const SellerHomeScreen = ({navigation}) => {
 
     const unsubscribe = navigation.addListener('focus', fetchMyStore);
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation]); // tetap ada
 
   const handleDeleteProduct = productId => {
     Alert.alert('Hapus Produk', 'Yakin ingin menghapus produk ini?', [
@@ -86,6 +90,7 @@ const SellerHomeScreen = ({navigation}) => {
             navigation.navigate('CreateProduct', {
               productData: item,
               isEdit: true,
+              storeId: storeData?.id,
             })
           }>
           <Text style={styles.actionIcon}>✏️</Text>
@@ -126,46 +131,62 @@ const SellerHomeScreen = ({navigation}) => {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             <>
-              {/* Info Toko */}
-              <View style={styles.storeInfoContainer}>
-                <Image
-                  source={require('../../assets/food1.png')}
-                  style={styles.storeImage}
-                />
-                <View style={styles.storeDetails}>
-                  <View style={styles.storeNameRow}>
-                    <Text style={styles.storeName} numberOfLines={1}>
-                      {storeData?.name || 'Nama Toko'}
-                    </Text>
-                    <View style={styles.ratingRow}>
-                      <Text style={styles.ratingText}>{ratingText}</Text>
-                      <Text style={styles.starIcon}>⭐</Text>
+              {storeData ? (
+                <>
+                  {/* Info Toko */}
+                  <View style={styles.storeInfoContainer}>
+                    <Image
+                      source={require('../../assets/food1.png')}
+                      style={styles.storeImage}
+                    />
+                    <View style={styles.storeDetails}>
+                      <View style={styles.storeNameRow}>
+                        <Text style={styles.storeName} numberOfLines={1}>
+                          {storeData?.name || 'Nama Toko'}
+                        </Text>
+                        <View style={styles.ratingRow}>
+                          <Text style={styles.ratingText}>{ratingText}</Text>
+                          <Text style={styles.starIcon}>⭐</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.storeAddress}>
+                        {storeData?.address ||
+                          storeData?.location ||
+                          storeData?.description ||
+                          'Alamat toko'}
+                      </Text>
+                      <Text style={styles.storeSold}>
+                        {storeData?.total_sold || 0} Item Terjual
+                      </Text>
                     </View>
                   </View>
-                  <Text style={styles.storeAddress}>
-                    {storeData?.address ||
-                      storeData?.location ||
-                      storeData?.description ||
-                      'Alamat toko'}
+
+                  {/* Tombol Lihat Review */}
+                  <TouchableOpacity
+                    style={styles.reviewButton}
+                    onPress={() => navigation.navigate('Review')}>
+                    <Text style={styles.reviewButtonText}>
+                      Lihat Review Toko
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Divider */}
+                  <View style={styles.divider} />
+
+                  {/* Label Produk */}
+                  <Text style={styles.sectionTitle}>Produk</Text>
+                </>
+              ) : (
+                // Kalau seller belum punya toko
+                <View style={styles.noStoreContainer}>
+                  <Text style={styles.noStoreTitle}>
+                    Kamu belum memiliki toko
                   </Text>
-                  <Text style={styles.storeSold}>
-                    {storeData?.total_sold || 0} Item Terjual
+                  <Text style={styles.noStoreSubtitle}>
+                    Hubungi admin untuk membuat toko.
                   </Text>
                 </View>
-              </View>
-
-              {/* Tombol Lihat Review */}
-              <TouchableOpacity
-                style={styles.reviewButton}
-                onPress={() => navigation.navigate('Review')}>
-                <Text style={styles.reviewButtonText}>Lihat Review Toko</Text>
-              </TouchableOpacity>
-
-              {/* Divider */}
-              <View style={styles.divider} />
-
-              {/* Label Produk */}
-              <Text style={styles.sectionTitle}>Produk</Text>
+              )}
             </>
           }
           renderItem={renderProduct}
@@ -178,7 +199,12 @@ const SellerHomeScreen = ({navigation}) => {
       {/* FAB Tambah Produk */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('CreateProduct', {isEdit: false})}>
+        onPress={() =>
+          navigation.navigate('CreateProduct', {
+            isEdit: false,
+            storeId: storeData?.id,
+          })
+        }>
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
 
@@ -431,6 +457,24 @@ const styles = StyleSheet.create({
   activeNavText: {
     color: '#FF6B35',
     fontFamily: fonts.poppinsMedium,
+  },
+  noStoreContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noStoreTitle: {
+    fontSize: 16,
+    fontFamily: fonts.poppinsMedium,
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noStoreSubtitle: {
+    fontSize: 13,
+    fontFamily: fonts.poppinsRegular,
+    color: '#999',
+    textAlign: 'center',
   },
 });
 

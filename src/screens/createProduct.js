@@ -13,15 +13,19 @@ import {
 } from 'react-native';
 // import {launchImageLibrary} from 'react-native-image-picker';
 import fonts from '../constants/styles';
+import productService from '../api/services/productService'; // tambah ini
 
 const CreateProductScreen = ({navigation, route}) => {
-  const {productData, isEdit} = route.params || {};
+  const {productData, isEdit, storeId} = route.params || {}; // tambah storeId
 
   const [name, setName] = useState(productData?.name || '');
   const [description, setDescription] = useState(
     productData?.description || '',
   );
-  const [price, setPrice] = useState(productData?.price?.toString() || '');
+  // const [price, setPrice] = useState(productData?.price?.toString() || '');
+  const [price, setPrice] = useState(
+    productData?.price ? String(parseFloat(productData.price)) : '',
+  );
   const [image, setImage] = useState(productData?.images?.[0] || null);
 
   // const handlePickImage = () => {
@@ -48,13 +52,28 @@ const CreateProductScreen = ({navigation, route}) => {
       return;
     }
     try {
-      // await productService.createProduct({name, description, price, image});
+      if (isEdit) {
+        await productService.updateProduct(productData.id, {
+          name,
+          description,
+          price: parseFloat(price),
+          images: image ? [image] : [],
+        });
+      } else {
+        await productService.createProduct(storeId, {
+          name,
+          description,
+          price: parseFloat(price),
+          images: image ? [image] : [],
+        });
+      }
       Alert.alert(
         'Berhasil',
         isEdit ? 'Produk berhasil diperbarui!' : 'Produk berhasil dibuat!',
         [{text: 'OK', onPress: () => navigation.goBack()}],
       );
     } catch (error) {
+      console.error(error);
       Alert.alert('Gagal', 'Tidak dapat menyimpan produk.');
     }
   };

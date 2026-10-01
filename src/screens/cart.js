@@ -62,7 +62,7 @@ const CartScreen = ({navigation}) => {
   const handleNotification = () => navigation.navigate('Notification');
 
   // dari screen cart ini perlu ke screen payment, setelah itu baru ke screen order
-  // const handlePayment = () => navigation.navigate('Payment');
+  const handlePayment = () => navigation.navigate('Payment');
 
   // const handlePayment = async () => {
   //   try {
@@ -97,7 +97,10 @@ const CartScreen = ({navigation}) => {
   //     navigation.navigate('Order');
   //   } catch (error) {
   //     console.error('Error creating order:', error);
-  //     Alert.alert('Error', 'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.');
+  //     Alert.alert(
+  //       'Error',
+  //       'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.',
+  //     );
   //   }
   // };
 
@@ -203,7 +206,8 @@ const CartScreen = ({navigation}) => {
                     <View style={styles.foodDetails}>
                       <Text style={styles.foodName}>{item.name}</Text>
                       <Text style={styles.foodPrice}>
-                        {formatCurrency(item.price)}/ Item
+                        Rp {parseFloat(item.price).toLocaleString('id-ID')}/
+                        Item
                       </Text>
                       <View style={styles.noteContainer}>
                         <Text style={styles.noteLabel}>Note: </Text>
