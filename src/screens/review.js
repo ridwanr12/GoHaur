@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -28,14 +29,16 @@ const ReviewScreen = ({navigation, route}) => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        if (!storeData.id) return;
+        if (!storeData.id) {
+          return;
+        }
         setLoading(true);
         const response = await feedbackService.getStoreFeedbacks(storeData.id);
         if (response.data && response.data.feedbacks) {
           setReviews(response.data.feedbacks);
         }
       } catch (error) {
-        console.error('Failed to fetch reviews:', error);
+        logger.error('Failed to fetch reviews:', error);
       } finally {
         setLoading(false);
       }

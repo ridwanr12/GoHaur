@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -73,7 +74,7 @@ const CreateProductScreen = ({navigation, route}) => {
         [{text: 'OK', onPress: () => navigation.goBack()}],
       );
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       Alert.alert('Gagal', 'Tidak dapat menyimpan produk.');
     }
   };

@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -133,7 +134,7 @@ const HomeScreen = ({navigation}) => {
           setStores(response.data.stores);
         }
       } catch (error) {
-        console.error('Failed to fetch stores:', error);
+        logger.error('Failed to fetch stores:', error);
       } finally {
         setLoading(false); // Mematikan animasi loading
       }

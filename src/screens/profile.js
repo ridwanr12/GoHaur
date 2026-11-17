@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useRef} from 'react';
 import {
   View,
   Text,
@@ -11,35 +11,16 @@ import {
   Animated,
 } from 'react-native';
 import fonts from '../constants/styles';
-import {profileService} from '../api';
-import {
-  removeToken,
-  removeUserData,
-  getUserData,
-  getUserId,
-} from '../utils/tokenStorage';
+import useProfileData from '../hooks/useProfileData';
+import {removeToken, removeUserData} from '../utils/tokenStorage';
 import {useAuth} from '../context/AuthContext'; // tambah
 
 const ProfileScreen = ({navigation}) => {
   const {logout} = useAuth(); // tambah
-  const [userData, setUserData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const fadeAnim = useRef(new Animated.Value(1)).current; // tambah
 
-  // Fungsi untuk mengambil data profil
-  const fetchProfileData = async () => {
-    setIsLoading(true);
-    try {
-      // Tambahkan log untuk debugging
-      const userId = await getUserId();
-      console.log('Attempting to fetch profile with user ID:', userId);
-
-      const response = await profileService.getProfile();
-      console.log('Profile data received:', response.data);
-      console.log('Jadi ini data profilnya:', response.data);
-      setUserData(response.data.user);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+  const {userData, isLoading} = useProfileData({
+    onError: error => {
       let errorMessage = 'Gagal mengambil data profil. Silakan coba lagi.';
 
       if (error.message === 'User ID tidak ditemukan') {
@@ -52,35 +33,16 @@ const ProfileScreen = ({navigation}) => {
 
       Alert.alert('Error', errorMessage);
 
-      // Jika error 401 (Unauthorized) atau error ID tidak ditemukan, arahkan ke halaman login
       if (
         (error.response && error.response.status === 401) ||
         error.message === 'User ID tidak ditemukan'
       ) {
-        await handleLogout();
+        handleLogout();
       } else {
         handleHome();
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Perbaiki useEffect untuk mencegah loop tak terbatas dan tambahkan debugging
-  useEffect(() => {
-    const checkUserData = async () => {
-      const userData = await getUserData();
-      console.log('User Data in AsyncStorage:', userData);
-      if (userData && userData.id) {
-        console.log('User ID found:', userData.id);
-      } else {
-        console.error('User ID not found in stored data');
-      }
-      fetchProfileData();
-    };
-
-    checkUserData();
-  }, []); // Tambahkan array kosong sebagai dependency
+    },
+  });
 
   const handleHome = () => {
     navigation.navigate('Home');
@@ -107,7 +69,7 @@ const ProfileScreen = ({navigation}) => {
   //     // Navigasi ke halaman login
   //     navigation.navigate('Signin');
   //   } catch (error) {
-  //     console.error('Logout error:', error);
+  //     logger.error('Logout error:', error);
   //   }
   // };
   const handleLogout = () => {

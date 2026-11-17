@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react'; // tambah useRef
+import React, {useRef} from 'react'; // tambah useRef
 import {
   View,
   Text,
@@ -11,35 +11,22 @@ import {
   Animated, // tambah Animated
 } from 'react-native';
 import fonts from '../constants/styles';
-import {profileService} from '../api';
+import useProfileData from '../hooks/useProfileData';
 import {removeToken, removeUserData} from '../utils/tokenStorage';
 import {useAuth} from '../context/AuthContext'; // tambah
 
 const CourierProfileScreen = ({navigation}) => {
   const {logout} = useAuth(); // tambah
-  const [userData, setUserData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const fadeAnim = useRef(new Animated.Value(1)).current; // tambah
 
-  const fetchProfileData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await profileService.getProfile();
-      setUserData(response.data.user);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+  const {userData, isLoading} = useProfileData({
+    onError: error => {
       Alert.alert('Error', 'Gagal mengambil data profil.');
       if (error.response?.status === 401) {
-        await handleLogout();
+        handleLogout();
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfileData();
-  }, []);
+    },
+  });
 
   // const handleLogout = async () => {
   //   try {
@@ -47,7 +34,7 @@ const CourierProfileScreen = ({navigation}) => {
   //     await removeUserData();
   //     navigation.navigate('Signin');
   //   } catch (error) {
-  //     console.error('Logout error:', error);
+  //     logger.error('Logout error:', error);
   //   }
   // };
   const handleLogout = () => {

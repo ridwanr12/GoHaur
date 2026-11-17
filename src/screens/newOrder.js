@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import logger from '../utils/logger';
+import React from 'react';
 import {
   View,
   Text,
@@ -79,10 +80,10 @@ const NewOrderScreen = ({navigation, route}) => {
   const handleProcessOrder = async () => {
     try {
       await orderService.updateOrderStatus(orderData.id, {status: 'approved'});
-      console.log('Pesanan diproses');
+      logger.log('Pesanan diproses');
       navigation.goBack();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       Alert.alert('Gagal', 'Tidak dapat memproses pesanan.');
     }
   };
@@ -90,10 +91,10 @@ const NewOrderScreen = ({navigation, route}) => {
   const handleRejectOrder = async () => {
     try {
       await orderService.updateOrderStatus(orderData.id, {status: 'canceled'});
-      console.log('Pesanan ditolak');
+      logger.log('Pesanan ditolak');
       navigation.navigate('Home');
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       Alert.alert('Gagal', 'Tidak dapat menolak pesanan.');
     }
   };
@@ -103,10 +104,10 @@ const NewOrderScreen = ({navigation, route}) => {
       await orderService.updateOrderStatus(orderData.id, {
         status: 'out_for_delivery',
       });
-      console.log('Pesanan dikirim');
+      logger.log('Pesanan dikirim');
       navigation.goBack();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       Alert.alert('Gagal', 'Tidak dapat mengirim pesanan.');
     }
   };

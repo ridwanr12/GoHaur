@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -39,14 +40,16 @@ const StoreScreen = ({navigation, route}) => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!storeData.id) return;
+      if (!storeData.id) {
+        return;
+      }
       try {
         const res = await productService.getStoreProducts(storeData.id);
         if (res && res.data && res.data.products) {
           setProducts(res.data.products);
         }
       } catch (error) {
-        console.error('Failed to fetch products:', error);
+        logger.error('Failed to fetch products:', error);
       } finally {
         setLoading(false);
       }
@@ -57,9 +60,11 @@ const StoreScreen = ({navigation, route}) => {
   // Tambahkan useEffect untuk menampilkan popup produk saat halaman dibuka
   useEffect(() => {
     if (showProductPopup && selectedProductId) {
-      const product = products.find(p => p.id === parseInt(selectedProductId));
+      const product = products.find(
+        p => p.id === parseInt(selectedProductId, 10),
+      );
       if (product) {
-        console.log('Auto opening product detail:', product.name);
+        logger.log('Auto opening product detail:', product.name);
         setSelectedProduct(product);
         setModalVisible(true);
       }
@@ -68,8 +73,8 @@ const StoreScreen = ({navigation, route}) => {
 
   // Tambahkan useEffect untuk memantau perubahan state
   useEffect(() => {
-    console.log('Modal visibility changed:', modalVisible);
-    console.log('Selected product:', selectedProduct?.name);
+    logger.log('Modal visibility changed:', modalVisible);
+    logger.log('Selected product:', selectedProduct?.name);
   }, [modalVisible, selectedProduct]);
 
   const handleBack = () => {
@@ -79,11 +84,11 @@ const StoreScreen = ({navigation, route}) => {
   const handleAddToCart = product => {
     // Add to cart default 1 item
     addToCart(storeData, product, 1);
-    console.log('Produk ditambahkan ke keranjang:', product.id);
+    logger.log('Produk ditambahkan ke keranjang:', product.id);
   };
 
   const handleViewReview = () => {
-    console.log('Lihat review toko');
+    logger.log('Lihat review toko');
     navigation.navigate('Review');
   };
 
@@ -91,13 +96,9 @@ const StoreScreen = ({navigation, route}) => {
     navigation.navigate('Cart');
   };
 
-  const formatCurrency = amount => {
-    return `Rp ${amount.toLocaleString('id-ID')}`;
-  };
-
-  // Pastikan fungsi ini berjalan dengan menambahkan console.log
+  // Pastikan fungsi ini berjalan dengan menambahkan logger.log
   const openProductDetail = product => {
-    console.log('Opening product detail:', product.name);
+    logger.log('Opening product detail:', product.name);
     setSelectedProduct(product);
     setModalVisible(true);
   };
@@ -278,8 +279,11 @@ const StoreScreen = ({navigation, route}) => {
                       </Text>
                       <Text style={styles.modalProductPrice}>
                         {/* {formatCurrency(selectedProduct.price)}/ Item */}
-                        Rp {parseFloat(selectedProduct.price).toLocaleString('id-ID')}/
-                      Item
+                        Rp{' '}
+                        {parseFloat(selectedProduct.price).toLocaleString(
+                          'id-ID',
+                        )}
+                        / Item
                       </Text>
 
                       <Text style={styles.modalDescriptionTitle}>
@@ -634,7 +638,7 @@ export default StoreScreen;
 //     if (typeof setModalVisible === 'function') {
 //       setModalVisible(true);
 //     } else {
-//       console.warn('setModalVisible is not defined');
+//       logger.warn('setModalVisible is not defined');
 //     }
 //   }}>
 //   <Text style={styles.cartButtonText}>Test Modal</Text>

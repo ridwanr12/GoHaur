@@ -1,3 +1,4 @@
+import logger from './logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOKEN_KEY = '@GoHaur:token';
@@ -8,7 +9,7 @@ export const storeToken = async token => {
     await AsyncStorage.setItem(TOKEN_KEY, token);
     return true;
   } catch (error) {
-    console.error('Error storing token:', error);
+    logger.error('Error storing token:', error);
     return false;
   }
 };
@@ -17,7 +18,7 @@ export const getToken = async () => {
   try {
     return await AsyncStorage.getItem(TOKEN_KEY);
   } catch (error) {
-    console.error('Error getting token:', error);
+    logger.error('Error getting token:', error);
     return null;
   }
 };
@@ -27,7 +28,7 @@ export const removeToken = async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     return true;
   } catch (error) {
-    console.error('Error removing token:', error);
+    logger.error('Error removing token:', error);
     return false;
   }
 };
@@ -38,7 +39,7 @@ export const storeUserData = async userData => {
     await AsyncStorage.setItem(USER_DATA_KEY, jsonValue);
     return true;
   } catch (error) {
-    console.error('Error storing user data:', error);
+    logger.error('Error storing user data:', error);
     return false;
   }
 };
@@ -48,7 +49,7 @@ export const getUserData = async () => {
     const jsonValue = await AsyncStorage.getItem(USER_DATA_KEY);
     return jsonValue != null ? JSON.parse(jsonValue) : null;
   } catch (error) {
-    console.error('Error getting user data:', error);
+    logger.error('Error getting user data:', error);
     return null;
   }
 };
@@ -58,7 +59,7 @@ export const removeUserData = async () => {
     await AsyncStorage.removeItem(USER_DATA_KEY);
     return true;
   } catch (error) {
-    console.error('Error removing user data:', error);
+    logger.error('Error removing user data:', error);
     return false;
   }
 };
@@ -68,7 +69,7 @@ export const clearStorage = async () => {
     await AsyncStorage.clear();
     return true;
   } catch (error) {
-    console.error('Error clearing storage:', error);
+    logger.error('Error clearing storage:', error);
     return false;
   }
 };
@@ -79,7 +80,7 @@ export const getUserId = async () => {
     const userData = await getUserData();
     return userData && userData.id ? userData.id : null;
   } catch (error) {
-    console.error('Error getting user ID:', error);
+    logger.error('Error getting user ID:', error);
     return null;
   }
 };

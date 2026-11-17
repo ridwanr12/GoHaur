@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -75,7 +76,7 @@ const SellerOrderScreen = ({navigation}) => {
           setOrders(response.data);
         }
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
+        logger.error('Failed to fetch orders:', error);
       } finally {
         setLoading(false);
       }
@@ -91,7 +92,9 @@ const SellerOrderScreen = ({navigation}) => {
   };
 
   const getFilteredOrders = () => {
-    if (activeTab === 'Semua') return orders;
+    if (activeTab === 'Semua') {
+      return orders;
+    }
     return orders.filter(order => order.status === activeTab);
   };
 

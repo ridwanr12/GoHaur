@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -18,7 +19,7 @@ const ForgetScreen = ({navigation}) => {
 
   const handleSignup = () => {
     // Implementasi logika pendaftaran
-    console.log('Kirim email berhasil');
+    logger.log('Kirim email berhasil');
     // navigation.navigate('Home');
   };
 

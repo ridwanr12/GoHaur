@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import API_CONFIG from './config';
 import {handleResponse, createUrl, timeoutPromise} from './apiUtils';
 import {getToken} from '../utils/tokenStorage';
@@ -51,7 +52,7 @@ const request = async (
     // Mengubah response dari HTTP menjadi format yang siap dipakai (JSON)
     return await handleResponse(response);
   } catch (error) {
-    console.error('API request failed:', error);
+    logger.error('API request failed:', error);
     throw error;
   }
 };

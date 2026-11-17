@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -29,7 +30,7 @@ const SellerHomeScreen = ({navigation}) => {
           setProducts(store.Products || []);
         }
       } catch (error) {
-        console.error('Failed to fetch store:', error);
+        logger.error('Failed to fetch store:', error);
         // tambah ini aja
         if (error.response?.status === 404) {
           setStoreData(null);

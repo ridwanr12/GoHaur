@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -118,7 +119,7 @@ const SignupScreen = ({navigation}) => {
       location: location || 'string',
     };
 
-    console.log('Data yang dikirim:', userData); // Tambahkan log ini
+    logger.log('Data yang dikirim:', userData); // Tambahkan log ini
 
     // Tambahkan field tambahan berdasarkan role
     if (role === 'seller') {
@@ -130,18 +131,18 @@ const SignupScreen = ({navigation}) => {
     try {
       setIsLoading(true);
       const response = await authService.register(userData);
-      console.log('Register berhasil:', response);
+      logger.log('Register berhasil:', response);
 
       Alert.alert(
         'Pendaftaran Berhasil',
         'Akun Anda telah berhasil dibuat. Silakan login.',
         [{text: 'OK', onPress: () => navigation.navigate('Signin')}],
       );
-    } catch (error) {
-      console.error('Register gagal:', error.message);
+    } catch (err) {
+      logger.error('Register gagal:', err.message);
       Alert.alert(
         'Pendaftaran Gagal',
-        error.message || 'Terjadi kesalahan saat mendaftar',
+        err.message || 'Terjadi kesalahan saat mendaftar',
       );
     } finally {
       setIsLoading(false);

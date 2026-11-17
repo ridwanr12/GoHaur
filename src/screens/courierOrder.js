@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -64,7 +65,8 @@ const OrderCard = ({item, onPress}) => {
   );
 };
 
-const CourierOrderScreen = ({navigation, route}) => { // tambah route
+const CourierOrderScreen = ({navigation, route}) => {
+  // tambah route
   // const CourierOrderScreen = ({navigation}) => {
   const [activeTab, setActiveTab] = useState('siap');
   const [orders, setOrders] = useState([]);
@@ -81,7 +83,7 @@ const CourierOrderScreen = ({navigation, route}) => { // tambah route
   //         setOrders(response.data);
   //       }
   //     } catch (error) {
-  //       console.error('Failed to fetch orders:', error);
+  //       logger.error('Failed to fetch orders:', error);
   //     } finally {
   //       setLoading(false);
   //     }
@@ -108,7 +110,7 @@ const CourierOrderScreen = ({navigation, route}) => { // tambah route
           setOrders(response.data);
         }
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
+        logger.error('Failed to fetch orders:', error);
       } finally {
         setLoading(false);
       }
@@ -116,7 +118,7 @@ const CourierOrderScreen = ({navigation, route}) => { // tambah route
 
     const unsubscribe = navigation.addListener('focus', fetchOrders);
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, route.params]);
 
   const getFilteredOrders = () => {
     if (activeTab === 'siap') {

@@ -1,3 +1,4 @@
+import logger from '../../utils/logger';
 import apiClient from '../apiClient';
 import {
   storeToken,
@@ -13,22 +14,22 @@ const authService = {
   login: async credentials => {
     try {
       const response = await apiClient.post('/api/auth/login', credentials);
-      console.log('Login response:', response.data);
+      logger.log('Login response:', response.data);
 
       // Simpan token dan data user jika login berhasil
       if (response.data && response.data.token) {
         await storeToken(response.data.token);
         // Pastikan data user memiliki ID
         if (response.data.user && response.data.user.id) {
-          console.log('Storing user data with ID:', response.data.user.id);
+          logger.log('Storing user data with ID:', response.data.user.id);
           await storeUserData(response.data.user);
 
           // Verifikasi data tersimpan
           // const storedData = await getUserData(); // Import getUserData from tokenStorage
 
-          // console.log('Verified stored user data:', storedData);
+          // logger.log('Verified stored user data:', storedData);
         } else {
-          console.error('User data tidak memiliki ID');
+          logger.error('User data tidak memiliki ID');
         }
       }
 

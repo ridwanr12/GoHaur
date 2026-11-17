@@ -10,7 +10,7 @@ const storeService = {
   },
 
   // Mendapatkan detail toko berdasarkan ID
-  getStoreById: (id) => {
+  getStoreById: id => {
     return apiClient.get(`/api/stores/${id}`);
   },
 
@@ -20,7 +20,7 @@ const storeService = {
   },
 
   // Membuat toko baru
-  createStore: (storeData) => {
+  createStore: storeData => {
     return apiClient.post('/api/stores', storeData);
   },
 
@@ -30,7 +30,7 @@ const storeService = {
   },
 
   // Menghapus toko
-  deleteStore: (id) => {
+  deleteStore: id => {
     return apiClient.delete(`/api/stores/${id}`);
   },
 };

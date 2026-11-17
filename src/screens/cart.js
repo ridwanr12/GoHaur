@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -10,10 +11,9 @@ import {
   StatusBar,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
-import {profileService, orderService} from '../api';
+import {profileService} from '../api';
 import {useCart} from '../context/CartContext';
 
 const CartScreen = ({navigation}) => {
@@ -26,7 +26,6 @@ const CartScreen = ({navigation}) => {
     updateQuantity,
     updateNote,
     toggleStoreSelection,
-    clearStoreFromCart,
     isLoading: isCartLoading,
   } = useCart();
 
@@ -37,7 +36,7 @@ const CartScreen = ({navigation}) => {
       const userData = response.data.user;
       setUserLocation(userData.location || 'Alamat belum diatur');
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logger.error('Error fetching profile:', error);
       setUserLocation('Alamat belum diatur');
     } finally {
       setIsLoadingProfile(false);
@@ -96,7 +95,7 @@ const CartScreen = ({navigation}) => {
   //     Alert.alert('Sukses', 'Pesanan berhasil dibuat!');
   //     navigation.navigate('Order');
   //   } catch (error) {
-  //     console.error('Error creating order:', error);
+  //     logger.error('Error creating order:', error);
   //     Alert.alert(
   //       'Error',
   //       'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.',

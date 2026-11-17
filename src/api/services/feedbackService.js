@@ -4,27 +4,29 @@ const feedbackService = {
   // GET: Mendapatkan daftar feedback untuk toko tertentu
   getStoreFeedbacks: (storeId, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const url = queryString ? `/api/feedback/store/${storeId}?${queryString}` : `/api/feedback/store/${storeId}`;
+    const url = queryString
+      ? `/api/feedback/store/${storeId}?${queryString}`
+      : `/api/feedback/store/${storeId}`;
     return apiClient.get(url);
   },
 
   // GET: Mendapatkan rata-rata rating untuk toko tertentu
-  getStoreRating: (storeId) => {
+  getStoreRating: storeId => {
     return apiClient.get(`/api/feedback/store/${storeId}/rating`);
   },
 
   // GET: Mendapatkan feedback untuk pesanan tertentu
-  getOrderFeedback: (orderId) => {
+  getOrderFeedback: orderId => {
     return apiClient.get(`/api/feedback/order/${orderId}`);
   },
 
   // GET: Mendapatkan detail feedback berdasarkan ID
-  getFeedbackById: (id) => {
+  getFeedbackById: id => {
     return apiClient.get(`/api/feedback/${id}`);
   },
 
   // POST: Membuat feedback baru (khusus pembeli)
-  createFeedback: (feedbackData) => {
+  createFeedback: feedbackData => {
     // feedbackData minimal berisi: order_id, rating, description
     return apiClient.post('/api/feedback', feedbackData);
   },
@@ -35,7 +37,7 @@ const feedbackService = {
   },
 
   // DELETE: Menghapus feedback (khusus pembeli)
-  deleteFeedback: (id) => {
+  deleteFeedback: id => {
     return apiClient.delete(`/api/feedback/${id}`);
   },
 };

@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {createContext, useState, useEffect, useContext} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Alert} from 'react-native';
@@ -17,7 +18,7 @@ export const CartProvider = ({children}) => {
           setCart(JSON.parse(storedCart));
         }
       } catch (error) {
-        console.error('Failed to load cart:', error);
+        logger.error('Failed to load cart:', error);
       } finally {
         setIsLoading(false);
       }
@@ -31,7 +32,7 @@ export const CartProvider = ({children}) => {
       try {
         await AsyncStorage.setItem('@gohaur_cart', JSON.stringify(cart));
       } catch (error) {
-        console.error('Failed to save cart:', error);
+        logger.error('Failed to save cart:', error);
       }
     };
     if (!isLoading) {

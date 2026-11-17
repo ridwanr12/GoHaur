@@ -1,4 +1,5 @@
-import React, {useState, useEffect} from 'react';
+import logger from '../utils/logger';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -32,14 +33,14 @@ const EditProfileScreen = ({navigation, route}) => {
   const [isSaving, setIsSaving] = useState(false);
 
   // Fungsi untuk mengambil data profil
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     setIsLoading(true);
     try {
       const userId = await getUserId();
-      console.log('Attempting to fetch profile with user ID:', userId);
+      logger.log('Attempting to fetch profile with user ID:', userId);
 
       const response = await profileService.getProfile();
-      console.log('Profile data received:', response.data);
+      logger.log('Profile data received:', response.data);
 
       // Menyesuaikan format data dari API ke format yang digunakan di form
       const userData = response.data.user;
@@ -82,7 +83,7 @@ const EditProfileScreen = ({navigation, route}) => {
           : require('../../assets/profilePic.png'),
       });
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logger.error('Error fetching profile:', error);
       let errorMessage = 'Gagal mengambil data profil. Silakan coba lagi.';
 
       if (error.message === 'User ID tidak ditemukan') {
@@ -107,12 +108,12 @@ const EditProfileScreen = ({navigation, route}) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigation]);
 
   // Mengambil data profil saat komponen dimuat
   useEffect(() => {
     fetchProfileData();
-  }, []);
+  }, [fetchProfileData]);
 
   const handleBack = () => {
     navigation.goBack();
@@ -149,13 +150,13 @@ const EditProfileScreen = ({navigation, route}) => {
 
       // Memanggil API untuk update profil
       const response = await profileService.updateProfile(profileData);
-      console.log('Profile updated:', response.data);
+      logger.log('Profile updated:', response.data);
 
       Alert.alert('Sukses', 'Profil berhasil diperbarui', [
         {text: 'OK', onPress: () => navigation.goBack()},
       ]);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logger.error('Error updating profile:', error);
       let errorMessage = 'Gagal memperbarui profil. Silakan coba lagi.';
 
       if (error.message === 'User ID tidak ditemukan') {

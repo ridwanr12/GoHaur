@@ -6,6 +6,8 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.js\" \"__tests__/**/*.tsx\" \"*.js\"",
+    "verify": "npm run lint && npm test",
     "start": "react-native start",
     "test": "jest"
   },

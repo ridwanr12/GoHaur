@@ -1,3 +1,4 @@
+import logger from '../../utils/logger';
 import apiClient from '../apiClient';
 import {getUserId} from '../../utils/tokenStorage';
 import API_CONFIG from '../config';
@@ -6,13 +7,13 @@ const profileService = {
   // Mendapatkan data profil pengguna
   getProfile: async () => {
     const userId = await getUserId();
-    console.log('User ID for profile request:', userId);
+    logger.log('User ID for profile request:', userId);
     if (!userId) {
       throw new Error('User ID tidak ditemukan');
     }
     // Pastikan endpoint sesuai dengan yang diharapkan backend
     const url = `/api/users/profile/${userId}`;
-    console.log('Full profile request URL:', API_CONFIG.BASE_URL + url);
+    logger.log('Full profile request URL:', API_CONFIG.BASE_URL + url);
     return apiClient.get(url);
   },
 

@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -8,7 +9,6 @@ import {
   Image,
   StatusBar,
   SafeAreaView,
-  TextInput,
 } from 'react-native';
 import fonts from '../constants/styles';
 // import {launchImageLibrary} from 'react-native-image-picker';
@@ -17,6 +17,9 @@ import fonts from '../constants/styles';
 
 const PaymentScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
+
+  // Hook wajib dipanggil sebelum early return apa pun (rules of hooks)
+  const [paymentProof] = useState(null);
 
   if (!orderData) {
     return (
@@ -43,8 +46,6 @@ const PaymentScreen = ({navigation, route}) => {
       </SafeAreaView>
     );
   }
-
-  const [paymentProof, setPaymentProof] = useState(null);
 
   // Format items
   const items = orderData.order_items || orderData.items || [];
@@ -77,18 +78,13 @@ const PaymentScreen = ({navigation, route}) => {
   };
 
   const handleChooseImage = () => {
-    const options = {
-      mediaType: 'photo',
-      includeBase64: false,
-      maxHeight: 2000,
-      maxWidth: 2000,
-    };
-
+    // TODO: fitur upload bukti pembayaran belum aktif.
+    // Butuh library react-native-image-picker + izin galeri sebelum dipakai.
     // launchImageLibrary(options, response => {
     //   if (response.didCancel) {
-    //     console.log('User cancelled image picker');
+    //     logger.log('User cancelled image picker');
     //   } else if (response.error) {
-    //     console.log('Image picker error: ', response.error);
+    //     logger.log('Image picker error: ', response.error);
     //   } else {
     //     let imageUri = response.assets[0].uri;
     //     setPaymentProof(imageUri);
@@ -98,7 +94,7 @@ const PaymentScreen = ({navigation, route}) => {
 
   const handleOrder = () => {
     // Implementasi logika pesanan
-    console.log('Order placed successfully');
+    logger.log('Order placed successfully');
     navigation.navigate('Order');
   };
 
