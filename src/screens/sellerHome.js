@@ -15,6 +15,7 @@ import {
 import fonts from '../constants/styles';
 import storeService from '../api/services/storeService';
 import {resolveImageUrl} from '../utils/imageUrl';
+import NotificationBell from '../components/NotificationBell';
 
 const SellerHomeScreen = ({navigation}) => {
   const [storeData, setStoreData] = useState(null);
@@ -113,12 +114,7 @@ const SellerHomeScreen = ({navigation}) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Toko Saya</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
+        <NotificationBell navigation={navigation} />
       </View>
 
       {loading ? (

@@ -45,6 +45,13 @@ const orderService = {
   completeOrder: orderId => {
     return apiClient.put(`/api/orders/${orderId}/complete`);
   },
+
+  // Seller menandai refund manual sudah dikirim
+  refundOrder: (orderId, refundNote) => {
+    return apiClient.put(`/api/orders/${orderId}/refund`, {
+      refund_note: refundNote || null,
+    });
+  },
 };
 
 export default orderService;

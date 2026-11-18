@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Alert,
   TextInput,
+  Linking,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
@@ -25,6 +26,10 @@ const NewOrderScreen = ({navigation, route}) => {
   const [courierName, setCourierName] = useState(orderData?.courier_name || '');
   const [courierPlate, setCourierPlate] = useState(orderData?.courier_plate || '');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [refundStatus, setRefundStatus] = useState(
+    orderData?.refund_status || 'not_required',
+  );
+  const [refundNote, setRefundNote] = useState('');
 
   // Jika tidak ada data order, tampilkan pesan kosong
   if (!orderData) {
@@ -57,14 +62,15 @@ const NewOrderScreen = ({navigation, route}) => {
   const items = orderData.order_items
     ? orderData.order_items
     : (orderData.Products || []).map(product => {
-        const quantity = product.order_products?.quantity || 1;
-        const lineTotal = Number(product.order_products?.price || 0);
+        const through = product.OrderProduct || product.order_products || {};
+        const quantity = through.quantity || 1;
+        const lineTotal = Number(through.price || 0);
         return {
           id: product.id,
           name: product.name,
           quantity,
           price: lineTotal / quantity,
-          note: product.order_products?.note,
+          note: through.note,
         };
       });
 
@@ -74,6 +80,11 @@ const NewOrderScreen = ({navigation, route}) => {
     orderData.buyer?.location ||
     'Alamat tidak diketahui';
   const buyer = orderData.buyer?.username || orderData.User?.name || 'Pembeli';
+  const buyerPhone = orderData.buyer?.phone || '';
+  const waNumber = buyerPhone.replace(/\D/g, '').replace(/^0/, '62');
+  const buyerBankName = orderData.buyer?.bank_name || '';
+  const buyerBankNumber = orderData.buyer?.bank_account_number || '';
+  const buyerBankHolder = orderData.buyer?.bank_account_holder || '';
   const deliveryFee = Number(orderData.shipping_cost || 0);
   const serviceFee = Number(orderData.packaging_fee ?? 2000);
 
@@ -115,14 +126,44 @@ const NewOrderScreen = ({navigation, route}) => {
   };
 
   const handleRejectOrder = async () => {
+    if (!rejectionReason.trim()) {
+      Alert.alert('Alasan wajib', 'Tulis alasan penolakan/pembatalan.');
+      return;
+    }
     try {
-      await orderService.rejectOrder(orderData.id, rejectionReason.trim());
+      const response = await orderService.rejectOrder(
+        orderData.id,
+        rejectionReason.trim(),
+      );
       setCurrentStatus('rejected');
-      Alert.alert('Pesanan ditolak', 'Buyer akan melihat status Ditolak.');
+      setRefundStatus(response?.data?.order?.refund_status || 'pending');
+      Alert.alert(
+        'Pesanan ditolak',
+        'Buyer akan melihat alasan dan status refund.',
+      );
     } catch (error) {
       logger.error(error);
       Alert.alert('Gagal', error?.message || 'Tidak dapat menolak pesanan.');
     }
+  };
+
+  const handleRefund = async () => {
+    try {
+      await orderService.refundOrder(orderData.id, refundNote.trim());
+      setRefundStatus('refunded');
+      Alert.alert('Refund dicatat', 'Buyer akan mendapat notifikasi refund.');
+    } catch (error) {
+      logger.error(error);
+      Alert.alert('Gagal', error?.message || 'Tidak dapat menandai refund.');
+    }
+  };
+
+  const handleChatBuyer = () => {
+    if (!waNumber) {
+      Alert.alert('Nomor tidak ada', 'Buyer belum mengisi nomor telepon.');
+      return;
+    }
+    Linking.openURL(`https://wa.me/${waNumber}`);
   };
 
   const handleSendOrder = async () => {
@@ -175,6 +216,31 @@ const NewOrderScreen = ({navigation, route}) => {
         <View style={styles.buyerContainer}>
           <Text style={styles.buyerLabel}>Nama Pembeli:</Text>
           <Text style={styles.buyerValue}>{buyer}</Text>
+
+          <TouchableOpacity style={styles.waButton} onPress={handleChatBuyer}>
+            <Text style={styles.waButtonText}>
+              {buyerPhone ? `Chat WhatsApp (${buyerPhone})` : 'Nomor HP buyer belum diisi'}
+            </Text>
+          </TouchableOpacity>
+
+          {(currentStatus === 'rejected' || refundStatus !== 'not_required') && (
+            <View style={styles.refundBox}>
+              <Text style={styles.refundTitle}>Rekening Refund Buyer</Text>
+              {buyerBankNumber ? (
+                <Text style={styles.refundText}>
+                  {buyerBankName || 'Bank'} • {buyerBankNumber} •{' '}
+                  {buyerBankHolder || '-'}
+                </Text>
+              ) : (
+                <Text style={styles.refundText}>
+                  Buyer belum mengisi rekening refund. Silakan chat.
+                </Text>
+              )}
+              <Text style={styles.refundText}>
+                Nominal: {formatCurrency(calculateGrandTotal())}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Order Items */}
@@ -269,7 +335,7 @@ const NewOrderScreen = ({navigation, route}) => {
             <>
               <TextInput
                 style={styles.courierInput}
-                placeholder="Alasan penolakan (opsional)"
+                placeholder="Alasan penolakan (wajib)"
                 value={rejectionReason}
                 onChangeText={setRejectionReason}
               />
@@ -300,13 +366,47 @@ const NewOrderScreen = ({navigation, route}) => {
               <TouchableOpacity style={styles.sendButton} onPress={handleSendOrder}>
                 <Text style={styles.sendButtonText}>Kirim Pesanan</Text>
               </TouchableOpacity>
+
+              <TextInput
+                style={styles.courierInput}
+                placeholder="Alasan pembatalan (wajib, misal stok habis)"
+                value={rejectionReason}
+                onChangeText={setRejectionReason}
+              />
+              <TouchableOpacity style={styles.rejectButton} onPress={handleRejectOrder}>
+                <Text style={styles.rejectButtonText}>Batalkan Pesanan</Text>
+              </TouchableOpacity>
             </>
           )}
 
           {currentStatus === 'rejected' && (
-            <Text style={styles.mutedText}>
-              Pesanan ditolak. Buyer sudah melihat status ini.
-            </Text>
+            <>
+              <Text style={styles.mutedText}>
+                Pesanan ditolak: {orderData.rejection_reason || rejectionReason}
+              </Text>
+              <Text style={styles.mutedText}>
+                Status refund:{' '}
+                {refundStatus === 'refunded'
+                  ? 'sudah dikirim'
+                  : refundStatus === 'pending'
+                  ? 'menunggu refund'
+                  : 'tidak perlu refund'}
+              </Text>
+
+              {refundStatus === 'pending' && (
+                <>
+                  <TextInput
+                    style={styles.courierInput}
+                    placeholder="Catatan refund (misal: transfer BCA 12:30)"
+                    value={refundNote}
+                    onChangeText={setRefundNote}
+                  />
+                  <TouchableOpacity style={styles.sendButton} onPress={handleRefund}>
+                    <Text style={styles.sendButtonText}>Refund Sudah Dikirim</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </>
           )}
 
           {currentStatus === 'shipped' && (
@@ -657,6 +757,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 10,
   },
+  waButton: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#25D366',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  waButtonText: {color: '#128C7E', fontFamily: fonts.poppinsMedium},
+  refundBox: {
+    marginTop: 12,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 10,
+    padding: 10,
+  },
+  refundTitle: {fontFamily: fonts.poppinsBold, fontSize: 13, marginBottom: 4},
+  refundText: {fontFamily: fonts.poppinsRegular, fontSize: 12, color: '#444'},
 });
 
 export default NewOrderScreen;

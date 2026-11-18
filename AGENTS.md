@@ -29,13 +29,13 @@ Backend harus jalan lebih dulu di port `3000`.
 src/App.js                 # root komponen
 src/api/config.js          # BASE_URL backend (10.0.2.2 untuk emulator Android)
 src/api/apiClient.js       # axios + interceptor token JWT
-src/api/services/          # satu file per domain: auth, store, product, order, delivery, feedback, profile
+src/api/services/          # satu file per domain: auth, store, product, order, feedback, profile, upload, notification
 src/context/               # AuthContext, CartContext
 src/navigation/            # root-navigator + navigator per role
 src/screens/               # seluruh layar UI
 src/hooks/                 # hook bersama (useProfileData)
-src/components/            # komponen bersama (LocationPicker)
-src/utils/                 # tokenStorage, logger, geo (Haversine), orderStatus, imageUrl
+src/components/            # komponen bersama (LocationPicker, NotificationBell)
+src/utils/                 # tokenStorage, logger, geo, orderStatus, imageUrl
 src/constants/styles.js    # font & warna
 ```
 
@@ -59,6 +59,10 @@ src/constants/styles.js    # font & warna
     Jangan menambah Google Maps API key tanpa keputusan baru.
 12. Upload gambar lewat `uploadService.uploadImage` -> `POST /api/uploads`.
     Jangan kirim base64 ke database.
+13. Notifikasi in-app diambil dari `src/api/services/notificationService.js`.
+    Ikon lonceng memakai `src/components/NotificationBell.js`. Jangan mengembalikan data mock.
+14. Refund dicatat manual. Seller menandai lewat `orderService.refundOrder`.
+    Nomor HP buyer dipakai untuk membuka `wa.me`, tanpa chat in-app.
 
 ## Catatan Teknis
 

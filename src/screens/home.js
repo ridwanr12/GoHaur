@@ -14,6 +14,7 @@ import {
 import fonts from '../constants/styles';
 import storeService from '../api/services/storeService';
 import profileService from '../api/services/profileService';
+import NotificationBell from '../components/NotificationBell';
 import {getCurrentCoordinates} from '../utils/location';
 import {
   haversineDistanceKm,
@@ -213,20 +214,12 @@ const HomeScreen = ({navigation}) => {
   const handleProfile = () => {
     navigation.navigate('Profile');
   };
-  const handleNotification = () => {
-    navigation.navigate('Notification');
-  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>GOHAUR</Text>
-        <TouchableOpacity onPress={handleNotification}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
+        <NotificationBell navigation={navigation} />
       </View>
 
       {loading ? (

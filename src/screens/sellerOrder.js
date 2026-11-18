@@ -15,6 +15,7 @@ import fonts from '../constants/styles';
 import {orderService} from '../api';
 import storeService from '../api/services/storeService';
 import {statusLabel, TAB_TO_STATUS} from '../utils/orderStatus';
+import NotificationBell from '../components/NotificationBell';
 
 const OrderItem = ({item, onPress}) => {
   const total = item.total_amount
@@ -109,12 +110,7 @@ const SellerOrderScreen = ({navigation}) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Pesanan</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
+        <NotificationBell navigation={navigation} />
       </View>
 
       {/* Tab Filter */}

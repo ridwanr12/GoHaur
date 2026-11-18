@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import useProfileData from '../hooks/useProfileData';
+import NotificationBell from '../components/NotificationBell';
 import {removeToken, removeUserData} from '../utils/tokenStorage';
 import {useAuth} from '../context/AuthContext'; // tambah
 
@@ -54,10 +55,6 @@ const ProfileScreen = ({navigation}) => {
 
   const handleOrder = () => {
     navigation.navigate('Order');
-  };
-
-  const handleNotification = () => {
-    navigation.navigate('Notification');
   };
 
   // Fungsi untuk logout
@@ -121,12 +118,7 @@ const ProfileScreen = ({navigation}) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profil</Text>
-          <TouchableOpacity onPress={handleNotification}>
-            <Image
-              source={require('../../assets/notification.png')}
-              style={styles.notificationIcon}
-            />
-          </TouchableOpacity>
+          <NotificationBell navigation={navigation} />
         </View>
 
         <View style={styles.profileContainer}>

@@ -47,14 +47,15 @@ const CurrentOrderScreen = ({navigation, route}) => {
   const items = orderData.order_items
     ? orderData.order_items
     : (orderData.Products || []).map(product => {
-        const quantity = product.order_products?.quantity || 1;
-        const lineTotal = Number(product.order_products?.price || 0);
+        const through = product.OrderProduct || product.order_products || {};
+        const quantity = through.quantity || 1;
+        const lineTotal = Number(through.price || 0);
         return {
           id: product.id,
           name: product.name,
           quantity,
           price: lineTotal / quantity,
-          note: product.order_products?.note,
+          note: through.note,
         };
       });
 
@@ -181,9 +182,31 @@ const CurrentOrderScreen = ({navigation, route}) => {
             </Text>
           </View>
 
-          {/* Kurir - hanya muncul saat dikirim atau selesai */}
-          {(status.toLowerCase() === 'out_for_delivery' ||
-            status.toLowerCase() === 'delivered') &&
+          {status.toLowerCase() === 'rejected' && (
+            <View style={{marginTop: 10}}>
+              <Text style={styles.statusLabel}>Alasan:</Text>
+              <Text style={styles.addressText}>
+                {orderData.rejection_reason || '-'}
+              </Text>
+              <Text style={styles.statusLabel}>Refund:</Text>
+              <Text style={styles.addressText}>
+                {orderData.refund_status === 'refunded'
+                  ? 'Sudah dikirim penjual'
+                  : orderData.refund_status === 'pending'
+                  ? 'Menunggu refund dari penjual'
+                  : 'Tidak perlu refund'}
+              </Text>
+              {Boolean(orderData.refund_note) && (
+                <Text style={styles.addressText}>
+                  Catatan: {orderData.refund_note}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* Kurir/pengirim - muncul saat dikirim atau selesai */}
+          {(status.toLowerCase() === 'shipped' ||
+            status.toLowerCase() === 'completed') &&
             courier && (
               <>
                 <Text style={styles.courierSectionLabel}>Kurir:</Text>

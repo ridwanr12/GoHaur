@@ -14,6 +14,7 @@ import {
 import fonts from '../constants/styles';
 import {orderService} from '../api';
 import {statusLabel, TAB_TO_STATUS} from '../utils/orderStatus';
+import NotificationBell from '../components/NotificationBell';
 
 // Komponen untuk menampilkan item pesanan
 const OrderItem = ({item, onPress}) => {
@@ -102,7 +103,6 @@ const OrderScreen = ({navigation}) => {
   const handleHome = () => navigation.navigate('Home');
   const handleCart = () => navigation.navigate('Cart');
   const handleProfile = () => navigation.navigate('Profile');
-  const handleNotification = () => navigation.navigate('Notification');
 
   const goToOrderDetail = item => {
     // Arahkan ke CurrentOrder dengan membawa data asli
@@ -122,12 +122,7 @@ const OrderScreen = ({navigation}) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Pesanan</Text>
-        <TouchableOpacity onPress={handleNotification}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
+        <NotificationBell navigation={navigation} />
       </View>
 
       <View style={styles.tabContainer}>
