@@ -5,7 +5,6 @@ import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import AuthNavigator from './auth-navigator';
 import BuyerNavigator from './buyer-navigator';
 import SellerNavigator from './seller-navigator';
-import CourierNavigator from './courier-navigator';
 
 // ========================================
 
@@ -49,7 +48,7 @@ const RootNavigator = () => {
   // }
 
   // Jika terotentikasi, cek role dari pengguna
-  const roles = user?.roles; // ["buyer"] atau ["seller"] atau ["courier"]
+  const roles = user?.roles; // ["buyer"] atau ["seller"]
   const role = Array.isArray(roles)
     ? roles[0]
     : user?.role || user?.role_name || 'buyer';
@@ -57,8 +56,6 @@ const RootNavigator = () => {
   switch (role.toLowerCase()) {
     case 'seller':
       return <SellerNavigator />;
-    case 'courier':
-      return <CourierNavigator />;
     case 'buyer':
     default:
       return <BuyerNavigator />;

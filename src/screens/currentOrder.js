@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
+import {statusLabel, statusColor} from '../utils/orderStatus';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const CurrentOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
@@ -42,24 +44,51 @@ const CurrentOrderScreen = ({navigation, route}) => {
     );
   }
 
-  const items = orderData.order_items || [];
+  const items = orderData.order_items
+    ? orderData.order_items
+    : (orderData.Products || []).map(product => {
+        const quantity = product.order_products?.quantity || 1;
+        const lineTotal = Number(product.order_products?.price || 0);
+        return {
+          id: product.id,
+          name: product.name,
+          quantity,
+          price: lineTotal / quantity,
+          note: product.order_products?.note,
+        };
+      });
+
   const address =
+    orderData.delivery_address ||
     orderData.shipping_address ||
+    orderData.buyer?.location ||
     orderData.User?.location ||
     'Alamat tidak diketahui';
   const status = orderData.status || 'pending';
-  const buyerName = orderData.User?.name || 'Pembeli';
-  const deliveryFee = orderData.shipping_cost || 0;
-  const serviceFee = 2000;
-  const courier = orderData.Courier || null; // data kurir dari backend
+  const buyerName =
+    orderData.buyer?.username || orderData.User?.name || 'Pembeli';
+  const deliveryFee = Number(orderData.shipping_cost || 0);
+  const serviceFee = Number(orderData.packaging_fee ?? 2000);
+  const courier = orderData.courier_name
+    ? {
+        name: orderData.courier_name,
+        phone: 'Pengirim dari toko',
+        code: orderData.courier_plate || '-',
+        photo: null,
+      }
+    : null;
 
   const calculateProductTotal = () => {
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
+    return items.reduce(
+      (total, item) => total + Number(item.price) * item.quantity,
+      0,
+    );
   };
 
   const calculateGrandTotal = () => {
     return (
-      orderData.total_amount ||
+      Number(orderData.total_price) ||
+      Number(orderData.total_amount) ||
       calculateProductTotal() + deliveryFee + serviceFee
     );
   };
@@ -68,60 +97,21 @@ const CurrentOrderScreen = ({navigation, route}) => {
     return `Rp ${value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
   };
 
-  // =============================================
-  // Warna status dinamis sesuai kondisi
-  // =============================================
-  const getStatusColor = () => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-      case 'menunggu diproses':
-        return '#FF9800'; // orange
-      case 'approved':
-      case 'sedang diproses':
-        return '#FF9800'; // orange
-      case 'out_for_delivery':
-      case 'dikirim':
-        return '#2196F3'; // biru
-      case 'delivered':
-      case 'selesai':
-        return '#4CAF50'; // hijau
-      case 'canceled':
-        return '#F44336'; // merah
-      default:
-        return '#FF9800';
-    }
-  };
+  const getStatusColor = () => statusColor(status);
 
   // =============================================
   // Label status yang ditampilkan ke user
   // =============================================
-  const getStatusLabel = () => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Menunggu Diproses';
-      case 'approved':
-        return 'Sedang Diproses';
-      case 'out_for_delivery':
-        return 'Dikirim';
-      case 'delivered':
-        return 'Selesai';
-      case 'canceled':
-        return 'Dibatalkan';
-      default:
-        return status;
-    }
-  };
+  const getStatusLabel = () => statusLabel(status);
 
   // =============================================
   // Tombol aksi buyer - sesuai foto
   // =============================================
   const handlePesananTiba = async () => {
     try {
-      await orderService.updateOrderStatus(orderData.id, {
-        status: 'delivered',
-      });
+      await orderService.completeOrder(orderData.id);
       navigation.replace('CurrentOrder', {
-        orderData: {...orderData, status: 'delivered'},
+        orderData: {...orderData, status: 'completed'},
       });
     } catch (error) {
       Alert.alert('Gagal', 'Tidak dapat mengkonfirmasi pesanan tiba.');
@@ -134,7 +124,7 @@ const CurrentOrderScreen = ({navigation, route}) => {
 
   const renderActionButton = () => {
     switch (status.toLowerCase()) {
-      case 'out_for_delivery':
+      case 'shipped':
         return (
           <TouchableOpacity
             style={styles.actionButton}
@@ -142,7 +132,7 @@ const CurrentOrderScreen = ({navigation, route}) => {
             <Text style={styles.actionButtonText}>Pesanan Tiba</Text>
           </TouchableOpacity>
         );
-      case 'delivered':
+      case 'completed':
         return (
           <TouchableOpacity
             style={styles.actionButton}
@@ -299,7 +289,7 @@ const CurrentOrderScreen = ({navigation, route}) => {
             <Image
               source={
                 orderData.payment_proof
-                  ? {uri: orderData.payment_proof}
+                  ? {uri: resolveImageUrl(orderData.payment_proof)}
                   : require('../../assets/paymentSample.png')
               }
               style={styles.proofImage}

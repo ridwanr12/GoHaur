@@ -2,6 +2,7 @@ import logger from '../utils/logger';
 import React, {createContext, useState, useEffect, useContext} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Alert} from 'react-native';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const CartContext = createContext();
 
@@ -75,7 +76,7 @@ export const CartProvider = ({children}) => {
             note: note,
             image:
               product.images && product.images.length > 0
-                ? {uri: product.images[0]}
+                ? {uri: resolveImageUrl(product.images[0])}
                 : require('../../assets/food1.png'),
           });
         }
@@ -84,8 +85,15 @@ export const CartProvider = ({children}) => {
         newCart.push({
           id: store.id,
           name: store.name,
+          description: store.description || '',
           address:
-            store.description || store.location || 'Alamat tidak tersedia',
+            store.address ||
+            store.description ||
+            store.location ||
+            'Alamat tidak tersedia',
+          image: store.image || null,
+          latitude: store.latitude != null ? Number(store.latitude) : null,
+          longitude: store.longitude != null ? Number(store.longitude) : null,
           selected: true, // Default dipilih saat masuk cart
           items: [
             {
@@ -96,7 +104,7 @@ export const CartProvider = ({children}) => {
               note: note,
               image:
                 product.images && product.images.length > 0
-                  ? {uri: product.images[0]}
+                ? {uri: resolveImageUrl(product.images[0])}
                   : require('../../assets/food1.png'),
             },
           ],

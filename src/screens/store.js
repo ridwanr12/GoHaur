@@ -12,10 +12,19 @@ import {
   SafeAreaView,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
 import productService from '../api/services/productService';
+import profileService from '../api/services/profileService';
 import {useCart} from '../context/CartContext';
+import {getCurrentCoordinates} from '../utils/location';
+import {
+  haversineDistanceKm,
+  MAX_DELIVERY_DISTANCE_KM,
+  formatDistance,
+} from '../utils/geo';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const StoreScreen = ({navigation, route}) => {
   const storeData = route.params?.storeData || {
@@ -37,6 +46,33 @@ const StoreScreen = ({navigation, route}) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const {addToCart} = useCart();
+  const [buyerCoords, setBuyerCoords] = useState(null);
+
+  useEffect(() => {
+    const loadLocation = async () => {
+      try {
+        const response = await profileService.getProfile();
+        const user = response?.data?.user;
+        if (user?.latitude != null && user?.longitude != null) {
+          setBuyerCoords({
+            latitude: Number(user.latitude),
+            longitude: Number(user.longitude),
+          });
+          return;
+        }
+      } catch (error) {
+        logger.error('Failed to load buyer location:', error);
+      }
+
+      try {
+        const coords = await getCurrentCoordinates();
+        setBuyerCoords(coords);
+      } catch (error) {
+        logger.error('Location unavailable:', error);
+      }
+    };
+    loadLocation();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -61,7 +97,7 @@ const StoreScreen = ({navigation, route}) => {
   useEffect(() => {
     if (showProductPopup && selectedProductId) {
       const product = products.find(
-        p => p.id === parseInt(selectedProductId, 10),
+        p => p.id?.toString() === selectedProductId?.toString(),
       );
       if (product) {
         logger.log('Auto opening product detail:', product.name);
@@ -82,7 +118,39 @@ const StoreScreen = ({navigation, route}) => {
   };
 
   const handleAddToCart = product => {
-    // Add to cart default 1 item
+    if (storeData.latitude == null || storeData.longitude == null) {
+      Alert.alert(
+        'Toko belum siap',
+        'Penjual belum mengatur titik lokasi toko, jadi pesanan belum bisa dibuat.',
+      );
+      return;
+    }
+
+    if (!buyerCoords) {
+      Alert.alert(
+        'Lokasi belum aktif',
+        'Aktifkan izin lokasi atau atur alamat di profil agar jarak bisa dihitung.',
+      );
+      return;
+    }
+
+    const distanceKm = haversineDistanceKm(
+      buyerCoords.latitude,
+      buyerCoords.longitude,
+      storeData.latitude,
+      storeData.longitude,
+    );
+
+    if (distanceKm >= MAX_DELIVERY_DISTANCE_KM) {
+      Alert.alert(
+        'Di luar jangkauan',
+        `Jarak toko ${formatDistance(
+          distanceKm,
+        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km.`,
+      );
+      return;
+    }
+
     addToCart(storeData, product, 1);
     logger.log('Produk ditambahkan ke keranjang:', product.id);
   };
@@ -174,7 +242,7 @@ const StoreScreen = ({navigation, route}) => {
             products.map(product => {
               const imageSource =
                 product.images && product.images.length > 0
-                  ? {uri: product.images[0]}
+                  ? {uri: resolveImageUrl(product.images[0])}
                   : require('../../assets/food1.png');
 
               return (
@@ -265,7 +333,7 @@ const StoreScreen = ({navigation, route}) => {
                       source={
                         selectedProduct.images &&
                         selectedProduct.images.length > 0
-                          ? {uri: selectedProduct.images[0]}
+                          ? {uri: resolveImageUrl(selectedProduct.images[0])}
                           : require('../../assets/food1.png')
                       }
                       style={styles.modalProductImage}

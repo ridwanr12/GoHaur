@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
+import storeService from '../api/services/storeService';
+import {statusLabel, TAB_TO_STATUS} from '../utils/orderStatus';
 
 const OrderItem = ({item, onPress}) => {
   const total = item.total_amount
@@ -32,7 +34,7 @@ const OrderItem = ({item, onPress}) => {
     <TouchableOpacity style={styles.orderCard} onPress={() => onPress(item)}>
       <View style={styles.orderHeader}>
         <View style={styles.statusContainer}>
-          <Text style={styles.statusText}>{item.status || 'Diproses'}</Text>
+          <Text style={styles.statusText}>{statusLabel(item.status)}</Text>
         </View>
         <Text style={styles.dateText}>{dateStr}</Text>
       </View>
@@ -61,6 +63,7 @@ const SellerOrderScreen = ({navigation}) => {
     'Semua',
     'Menunggu Diproses',
     'Sedang Diproses',
+    'Ditolak',
     'Dikirim',
     'Selesai',
   ];
@@ -69,12 +72,15 @@ const SellerOrderScreen = ({navigation}) => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await orderService.getAllOrders();
-        if (response.data?.orders) {
-          setOrders(response.data.orders);
-        } else if (Array.isArray(response.data)) {
-          setOrders(response.data);
+        const storeResponse = await storeService.getMyStore();
+        const storeId = storeResponse?.data?.store?.id;
+        if (!storeId) {
+          setOrders([]);
+          return;
         }
+        const response = await orderService.getStoreOrders(storeId);
+        const list = response.data?.orders || response.data || [];
+        setOrders(Array.isArray(list) ? list : []);
       } catch (error) {
         logger.error('Failed to fetch orders:', error);
       } finally {
@@ -95,7 +101,8 @@ const SellerOrderScreen = ({navigation}) => {
     if (activeTab === 'Semua') {
       return orders;
     }
-    return orders.filter(order => order.status === activeTab);
+    const status = TAB_TO_STATUS[activeTab];
+    return orders.filter(order => order.status === status);
   };
 
   return (

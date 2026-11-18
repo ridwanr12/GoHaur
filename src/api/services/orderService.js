@@ -1,30 +1,49 @@
 import apiClient from '../apiClient';
 
-/**
- * Service khusus untuk mengelola Endpoint '/api/orders'.
- * Memisahkan pemanggilan API dari halaman UI agar kode lebih bersih (Clean Architecture).
- */
 const orderService = {
-  // Mendapatkan semua pesanan (Biasanya untuk pembeli)
+  // Pesanan milik buyer yang sedang login
   getAllOrders: () => {
     return apiClient.get('/api/orders/my-orders');
   },
 
-  // Mendapatkan detail satu pesanan secara spesifik
+  // Pesanan yang masuk ke toko seller
+  getStoreOrders: (storeId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = query
+      ? `/api/orders/store/${storeId}?${query}`
+      : `/api/orders/store/${storeId}`;
+    return apiClient.get(url);
+  },
+
   getOrderById: orderId => {
     return apiClient.get(`/api/orders/${orderId}`);
   },
 
-  // Membuat pesanan baru saat menekan tombol "Bayar" di CartScreen
   createOrder: orderData => {
-    // Memanggil fungsi POST ke /api/orders
     return apiClient.post('/api/orders', orderData);
   },
 
-  // Memperbarui status pesanan (Misal dari Seller menyetujui pesanan)
-  updateOrderStatus: (orderId, statusData) => {
-    // Backend menggunakan PUT untuk mengupdate status
-    return apiClient.put(`/api/orders/${orderId}/status`, statusData);
+  // Aksi seller
+  acceptOrder: orderId => {
+    return apiClient.put(`/api/orders/${orderId}/accept`);
+  },
+
+  rejectOrder: (orderId, rejectionReason) => {
+    return apiClient.put(`/api/orders/${orderId}/reject`, {
+      rejection_reason: rejectionReason || null,
+    });
+  },
+
+  shipOrder: (orderId, {courier_name, courier_plate}) => {
+    return apiClient.put(`/api/orders/${orderId}/ship`, {
+      courier_name,
+      courier_plate,
+    });
+  },
+
+  // Aksi buyer
+  completeOrder: orderId => {
+    return apiClient.put(`/api/orders/${orderId}/complete`);
   },
 };
 

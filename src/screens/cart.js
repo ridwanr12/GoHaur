@@ -11,10 +11,17 @@ import {
   StatusBar,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {profileService} from '../api';
+import storeService from '../api/services/storeService';
 import {useCart} from '../context/CartContext';
+import {
+  haversineDistanceKm,
+  MAX_DELIVERY_DISTANCE_KM,
+  formatDistance,
+} from '../utils/geo';
 
 const CartScreen = ({navigation}) => {
   const [userLocation, setUserLocation] = useState('');
@@ -60,48 +67,92 @@ const CartScreen = ({navigation}) => {
   const handleProfile = () => navigation.navigate('Profile');
   const handleNotification = () => navigation.navigate('Notification');
 
-  // dari screen cart ini perlu ke screen payment, setelah itu baru ke screen order
-  const handlePayment = () => navigation.navigate('Payment');
+  // Lanjut ke payment: validasi jarak dulu di sisi klien.
+  // Backend tetap menghitung ulang saat order dibuat.
+  const handlePayment = async () => {
+    const vendor = getSelectedVendor();
+    if (!vendor?.id) {
+      Alert.alert('Peringatan', 'Silakan pilih toko terlebih dahulu.');
+      return;
+    }
 
-  // const handlePayment = async () => {
-  //   try {
-  //     const selectedVendor = getSelectedVendor();
-  //     if (!selectedVendor || Object.keys(selectedVendor).length === 0) {
-  //       Alert.alert('Peringatan', 'Silakan pilih pesanan terlebih dahulu');
-  //       return;
-  //     }
+    let userCoords = null;
+    try {
+      const response = await profileService.getProfile();
+      const user = response?.data?.user;
+      if (user?.latitude != null && user?.longitude != null) {
+        userCoords = {
+          latitude: Number(user.latitude),
+          longitude: Number(user.longitude),
+        };
+      }
+    } catch (error) {
+      logger.error('Failed to load profile location:', error);
+    }
 
-  //     // Menyesuaikan format JSON yang diminta oleh Backend untuk "Products"
-  //     const products = selectedVendor.items.map(item => ({
-  //       product_id: item.id.toString(),
-  //       quantity: item.quantity,
-  //       note: item.note || '',
-  //     }));
+    if (!userCoords) {
+      Alert.alert(
+        'Alamat belum diatur',
+        'Atur titik lokasi di Detail Profil dan Alamat terlebih dahulu.',
+        [
+          {text: 'Batal', style: 'cancel'},
+          {
+            text: 'Atur',
+            onPress: () => navigation.navigate('ProfileDetail'),
+          },
+        ],
+      );
+      return;
+    }
 
-  //     // Membentuk objek `orderData` utama
-  //     const orderData = {
-  //       store_id: selectedVendor.id.toString(),
-  //       products: products,
-  //       shipping_cost: 10000,
-  //       payment_proof: 'dummy-payment-proof.png',
-  //     };
+    let storeLat = vendor.latitude;
+    let storeLng = vendor.longitude;
 
-  //     // POST ke /api/orders
-  //     await orderService.createOrder(orderData);
+    if (storeLat == null || storeLng == null) {
+      try {
+        const response = await storeService.getStoreById(vendor.id);
+        const store = response?.data?.store;
+        storeLat = store?.latitude != null ? Number(store.latitude) : null;
+        storeLng = store?.longitude != null ? Number(store.longitude) : null;
+      } catch (error) {
+        logger.error('Failed to load store location:', error);
+      }
+    }
 
-  //     // Hapus keranjang restoran yang sudah di checkout
-  //     clearStoreFromCart(selectedVendor.id);
+    if (storeLat == null || storeLng == null) {
+      Alert.alert('Toko belum siap', 'Penjual belum mengatur lokasi toko.');
+      return;
+    }
 
-  //     Alert.alert('Sukses', 'Pesanan berhasil dibuat!');
-  //     navigation.navigate('Order');
-  //   } catch (error) {
-  //     logger.error('Error creating order:', error);
-  //     Alert.alert(
-  //       'Error',
-  //       'Gagal membuat pesanan. Pastikan server berjalan dan auth valid.',
-  //     );
-  //   }
-  // };
+    const distanceKm = haversineDistanceKm(
+      userCoords.latitude,
+      userCoords.longitude,
+      storeLat,
+      storeLng,
+    );
+
+    if (distanceKm >= MAX_DELIVERY_DISTANCE_KM) {
+      Alert.alert(
+        'Di luar jangkauan',
+        `Jarak toko ${formatDistance(
+          distanceKm,
+        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km.`,
+      );
+      return;
+    }
+
+    navigation.navigate('Payment', {
+      orderData: {
+        store: {
+          ...vendor,
+          latitude: storeLat,
+          longitude: storeLng,
+        },
+        items: vendor.items,
+        distanceKm,
+      },
+    });
+  };
 
   const calculateTotal = items => {
     return items.reduce((total, item) => total + item.price * item.quantity, 0);

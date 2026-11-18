@@ -13,6 +13,14 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import storeService from '../api/services/storeService';
+import profileService from '../api/services/profileService';
+import {getCurrentCoordinates} from '../utils/location';
+import {
+  haversineDistanceKm,
+  formatDistance,
+  MAX_DELIVERY_DISTANCE_KM,
+} from '../utils/geo';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 /**
  * HomeScreen adalah halaman pertama yang dilihat pembeli setelah login.
@@ -30,7 +38,7 @@ const MenuItem = ({item, restaurant, navigation}) => {
 
   const imageSource =
     item.images && item.images.length > 0
-      ? {uri: item.images[0]}
+      ? {uri: resolveImageUrl(item.images[0])}
       : require('../../assets/food1.png');
 
   return (
@@ -50,7 +58,7 @@ const MenuItem = ({item, restaurant, navigation}) => {
 };
 
 // Komponen untuk menampilkan restoran
-const RestaurantCard = ({item, navigation}) => {
+const RestaurantCard = ({item, navigation, distanceKm}) => {
   const handleRestaurant = () => {
     navigation.navigate('Store', {storeData: item});
   };
@@ -80,6 +88,23 @@ const RestaurantCard = ({item, navigation}) => {
               <Text style={styles.restaurantLocation}>
                 {item.description || 'Deskripsi toko'}
               </Text>
+              {distanceKm != null && (
+                <Text
+                  style={{
+                    fontFamily: fonts.poppinsMedium,
+                    fontSize: 12,
+                    color:
+                      distanceKm >= MAX_DELIVERY_DISTANCE_KM
+                        ? '#F44336'
+                        : '#4CAF50',
+                    marginTop: 2,
+                  }}>
+                  {formatDistance(distanceKm)}
+                  {distanceKm >= MAX_DELIVERY_DISTANCE_KM
+                    ? ' • di luar jangkauan'
+                    : ''}
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.ratingContainer}>
@@ -118,6 +143,35 @@ const HomeScreen = ({navigation}) => {
   const [stores, setStores] = useState([]);
   // State `loading` digunakan untuk menampilkan spinner (ActivityIndicator) saat menunggu data
   const [loading, setLoading] = useState(true);
+  const [buyerCoords, setBuyerCoords] = useState(null);
+
+  // Minta lokasi sekali. Kalau profil sudah punya titik, tidak perlu GPS.
+  useEffect(() => {
+    const loadLocation = async () => {
+      try {
+        const response = await profileService.getProfile();
+        const user = response?.data?.user;
+        if (user?.latitude != null && user?.longitude != null) {
+          setBuyerCoords({
+            latitude: Number(user.latitude),
+            longitude: Number(user.longitude),
+          });
+          return;
+        }
+      } catch (error) {
+        logger.error('Failed to load buyer profile for location:', error);
+      }
+
+      try {
+        const coords = await getCurrentCoordinates();
+        setBuyerCoords(coords);
+      } catch (error) {
+        logger.error('Location permission denied or unavailable:', error);
+      }
+    };
+
+    loadLocation();
+  }, []);
 
   // useEffect dieksekusi saat komponen dirender.
   // Dalam kasus ini, kita memanggil fungsi fetchStores.
@@ -184,7 +238,20 @@ const HomeScreen = ({navigation}) => {
         <FlatList
           data={stores}
           renderItem={({item}) => (
-            <RestaurantCard item={item} navigation={navigation} />
+            <RestaurantCard
+              item={item}
+              navigation={navigation}
+              distanceKm={
+                buyerCoords && item.latitude != null && item.longitude != null
+                  ? haversineDistanceKm(
+                      buyerCoords.latitude,
+                      buyerCoords.longitude,
+                      item.latitude,
+                      item.longitude,
+                    )
+                  : null
+              }
+            />
           )}
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}

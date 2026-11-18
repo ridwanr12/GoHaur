@@ -7,7 +7,7 @@ import orderService from './services/orderService';
 import profileService from './services/profileService';
 import storeService from './services/storeService';
 import productService from './services/productService';
-import deliveryService from './services/deliveryService';
+import uploadService from './services/uploadService';
 import feedbackService from './services/feedbackService';
 
 // Pastikan untuk mengekspor semua service
@@ -19,6 +19,6 @@ export {
   profileService,
   storeService,
   productService,
-  deliveryService,
+  uploadService,
   feedbackService,
 };

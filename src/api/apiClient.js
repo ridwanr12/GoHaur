@@ -81,6 +81,32 @@ const apiClient = {
   delete: (endpoint, customHeaders = {}) => {
     return request(endpoint, 'DELETE', null, customHeaders);
   },
+
+  /**
+   * Upload satu file gambar (multipart/form-data).
+   * File dari react-native-image-picker: {uri, type, fileName}.
+   */
+  upload: async (endpoint, file, fieldName = 'file') => {
+    const token = await getToken();
+    const form = new FormData();
+    form.append(fieldName, {
+      uri: file.uri,
+      type: file.type || 'image/jpeg',
+      name: file.fileName || `upload-${Date.now()}.jpg`,
+    });
+
+    const response = await timeoutPromise(
+      API_CONFIG.TIMEOUT * 3,
+      fetch(createUrl(endpoint), {
+        method: 'POST',
+        // Jangan set Content-Type; fetch akan mengisi boundary sendiri.
+        headers: token ? {Authorization: `Bearer ${token}`} : {},
+        body: form,
+      }),
+    );
+
+    return await handleResponse(response);
+  },
 };
 
 export default apiClient;
