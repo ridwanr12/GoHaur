@@ -23,8 +23,13 @@ export const SHIPPING_TIERS = [
   { maxKm: 5, cost: 18000 },
 ];
 
+export function roundDistanceKm(value) {
+  return Math.round(Number(value) * 100) / 100;
+}
+
 export function getShippingCost(distanceKm) {
-  const tier = SHIPPING_TIERS.find(item => distanceKm < item.maxKm);
+  const km = roundDistanceKm(distanceKm);
+  const tier = SHIPPING_TIERS.find(item => km < item.maxKm);
   return tier ? tier.cost : null;
 }
 

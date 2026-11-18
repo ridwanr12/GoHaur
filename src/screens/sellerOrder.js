@@ -18,9 +18,8 @@ import {statusLabel, TAB_TO_STATUS} from '../utils/orderStatus';
 import NotificationBell from '../components/NotificationBell';
 
 const OrderItem = ({item, onPress}) => {
-  const total = item.total_amount
-    ? `Rp ${item.total_amount.toLocaleString('id-ID')}`
-    : 'Rp 0';
+  const totalValue = Number(item.total_price ?? item.total_amount ?? 0);
+  const total = `Rp ${totalValue.toLocaleString('id-ID')}`;
 
   const dateObj = new Date(item.created_at);
   const dateStr = !isNaN(dateObj.getTime())

@@ -204,6 +204,9 @@ const NewOrderScreen = ({navigation, route}) => {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionLabel}>Lokasi/ Alamat Tuju:</Text>
           <Text style={styles.addressText}>{address}</Text>
+          <Text style={styles.addressText}>
+            Jarak: {orderData.distance_km != null ? `${Number(orderData.distance_km).toFixed(2)} km` : '-'}
+          </Text>
         </View>
 
         {/* Status Section */}

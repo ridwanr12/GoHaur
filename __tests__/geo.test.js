@@ -31,4 +31,10 @@ describe('getShippingCost', () => {
   test('5 km ke atas tidak dilayani', () => {
     expect(getShippingCost(MAX_DELIVERY_DISTANCE_KM)).toBeNull();
   });
+
+  test('membulatkan jarak 2 desimal sebelum memilih tier', () => {
+    expect(getShippingCost(0.994)).toBe(8000);
+    expect(getShippingCost(1.004)).toBe(10000);
+    expect(getShippingCost(4.999)).toBeNull();
+  });
 });

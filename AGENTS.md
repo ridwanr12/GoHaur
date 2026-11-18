@@ -57,6 +57,8 @@ src/constants/styles.js    # font & warna
 10. Ongkir mengikuti tier `src/utils/geo.js` dan HARUS sama dengan backend.
 11. Peta memakai Leaflet + OpenStreetMap di WebView (`src/components/LocationPicker.js`).
     Jangan menambah Google Maps API key tanpa keputusan baru.
+    Titik payment TIDAK boleh disimpan ke profil; profil hanya diubah lewat Edit Profil.
+    Titik awal payment hanya diisi otomatis kalau jarak profil <5 km.
 12. Upload gambar lewat `uploadService.uploadImage` -> `POST /api/uploads`.
     Jangan kirim base64 ke database.
 13. Notifikasi in-app diambil dari `src/api/services/notificationService.js`.

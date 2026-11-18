@@ -118,10 +118,19 @@ const StoreScreen = ({navigation, route}) => {
   };
 
   const handleAddToCart = product => {
+    const proceed = () => {
+      addToCart(storeData, product, 1);
+      logger.log('Produk ditambahkan ke keranjang:', product.id);
+    };
+
     if (storeData.latitude == null || storeData.longitude == null) {
       Alert.alert(
-        'Toko belum siap',
-        'Penjual belum mengatur titik lokasi toko, jadi pesanan belum bisa dibuat.',
+        'Lokasi toko belum diatur',
+        'Kamu masih bisa menambah ke keranjang, tetapi pesanan belum bisa diproses sampai penjual mengatur titik toko.',
+        [
+          {text: 'Batal', style: 'cancel'},
+          {text: 'Tetap Tambah', onPress: proceed},
+        ],
       );
       return;
     }
@@ -129,7 +138,11 @@ const StoreScreen = ({navigation, route}) => {
     if (!buyerCoords) {
       Alert.alert(
         'Lokasi belum aktif',
-        'Aktifkan izin lokasi atau atur alamat di profil agar jarak bisa dihitung.',
+        'Kamu masih bisa menambah ke keranjang. Titik pengiriman akan diminta di halaman pembayaran.',
+        [
+          {text: 'Batal', style: 'cancel'},
+          {text: 'Tetap Tambah', onPress: proceed},
+        ],
       );
       return;
     }
@@ -144,15 +157,18 @@ const StoreScreen = ({navigation, route}) => {
     if (distanceKm >= MAX_DELIVERY_DISTANCE_KM) {
       Alert.alert(
         'Di luar jangkauan',
-        `Jarak toko ${formatDistance(
+        `Lokasi kamu ${formatDistance(
           distanceKm,
-        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km.`,
+        )} dari toko. Kamu masih bisa menambah ke keranjang, tetapi titik pengiriman di pembayaran harus kurang dari ${MAX_DELIVERY_DISTANCE_KM} km.`,
+        [
+          {text: 'Batal', style: 'cancel'},
+          {text: 'Tetap Tambah', onPress: proceed},
+        ],
       );
       return;
     }
 
-    addToCart(storeData, product, 1);
-    logger.log('Produk ditambahkan ke keranjang:', product.id);
+    proceed();
   };
 
   const handleViewReview = () => {

@@ -17,11 +17,6 @@ import fonts from '../constants/styles';
 import {profileService} from '../api';
 import storeService from '../api/services/storeService';
 import {useCart} from '../context/CartContext';
-import {
-  haversineDistanceKm,
-  MAX_DELIVERY_DISTANCE_KM,
-  formatDistance,
-} from '../utils/geo';
 
 const CartScreen = ({navigation}) => {
   const [userLocation, setUserLocation] = useState('');
@@ -67,41 +62,12 @@ const CartScreen = ({navigation}) => {
   const handleProfile = () => navigation.navigate('Profile');
   const handleNotification = () => navigation.navigate('Notification');
 
-  // Lanjut ke payment: validasi jarak dulu di sisi klien.
+  // Lanjut ke payment. Titik kirim dan ongkir ditentukan di sana.
   // Backend tetap menghitung ulang saat order dibuat.
   const handlePayment = async () => {
     const vendor = getSelectedVendor();
     if (!vendor?.id) {
       Alert.alert('Peringatan', 'Silakan pilih toko terlebih dahulu.');
-      return;
-    }
-
-    let userCoords = null;
-    try {
-      const response = await profileService.getProfile();
-      const user = response?.data?.user;
-      if (user?.latitude != null && user?.longitude != null) {
-        userCoords = {
-          latitude: Number(user.latitude),
-          longitude: Number(user.longitude),
-        };
-      }
-    } catch (error) {
-      logger.error('Failed to load profile location:', error);
-    }
-
-    if (!userCoords) {
-      Alert.alert(
-        'Alamat belum diatur',
-        'Atur titik lokasi di Detail Profil dan Alamat terlebih dahulu.',
-        [
-          {text: 'Batal', style: 'cancel'},
-          {
-            text: 'Atur',
-            onPress: () => navigation.navigate('ProfileDetail'),
-          },
-        ],
-      );
       return;
     }
 
@@ -124,23 +90,6 @@ const CartScreen = ({navigation}) => {
       return;
     }
 
-    const distanceKm = haversineDistanceKm(
-      userCoords.latitude,
-      userCoords.longitude,
-      storeLat,
-      storeLng,
-    );
-
-    if (distanceKm >= MAX_DELIVERY_DISTANCE_KM) {
-      Alert.alert(
-        'Di luar jangkauan',
-        `Jarak toko ${formatDistance(
-          distanceKm,
-        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km.`,
-      );
-      return;
-    }
-
     navigation.navigate('Payment', {
       orderData: {
         store: {
@@ -149,7 +98,6 @@ const CartScreen = ({navigation}) => {
           longitude: storeLng,
         },
         items: vendor.items,
-        distanceKm,
       },
     });
   };

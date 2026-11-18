@@ -19,12 +19,12 @@ import orderService from '../api/services/orderService';
 import profileService from '../api/services/profileService';
 import uploadService from '../api/services/uploadService';
 import {useCart} from '../context/CartContext';
-import {getCurrentCoordinates} from '../utils/location';
 import {
   getShippingCost,
   haversineDistanceKm,
   MAX_DELIVERY_DISTANCE_KM,
   PACKAGING_FEE,
+  roundDistanceKm,
   formatDistance,
   formatRupiah,
 } from '../utils/geo';
@@ -59,27 +59,37 @@ const PaymentScreen = ({navigation, route}) => {
     try {
       const response = await profileService.getProfile();
       const user = response?.data?.user;
-      if (user?.latitude != null && user?.longitude != null) {
-        applyLocation(
-          {
-            latitude: Number(user.latitude),
-            longitude: Number(user.longitude),
-          },
-          user.location || '',
+
+      const hasProfilePoint = user?.latitude != null && user?.longitude != null;
+      const hasStorePoint = store?.latitude != null && store?.longitude != null;
+
+      if (hasProfilePoint && hasStorePoint) {
+        const profileCoords = {
+          latitude: Number(user.latitude),
+          longitude: Number(user.longitude),
+        };
+        const profileDistance = haversineDistanceKm(
+          profileCoords.latitude,
+          profileCoords.longitude,
+          store.latitude,
+          store.longitude,
         );
-        return;
+
+        if (profileDistance < MAX_DELIVERY_DISTANCE_KM) {
+          applyLocation(profileCoords, user.location || '');
+          return;
+        }
       }
+
+      // Profil kosong atau terlalu jauh: titik pengiriman harus dipilih manual.
+      setCoords(null);
+      setAddress('');
     } catch (error) {
       logger.error('Failed to load profile location:', error);
+      setCoords(null);
+      setAddress('');
     }
-
-    try {
-      const current = await getCurrentCoordinates();
-      applyLocation(current, '');
-    } catch (error) {
-      logger.error('Location permission denied:', error);
-    }
-  }, [applyLocation]);
+  }, [applyLocation, store]);
 
   useEffect(() => {
     loadSavedLocation();
@@ -97,12 +107,19 @@ const PaymentScreen = ({navigation, route}) => {
     );
   }, [coords, store]);
 
-  const shippingCost = distanceKm != null ? getShippingCost(distanceKm) : null;
+  const hasDeliveryPoint = Boolean(coords);
+  const roundedDistanceKm = distanceKm != null ? roundDistanceKm(distanceKm) : null;
+  const isOutOfRange =
+    roundedDistanceKm != null && roundedDistanceKm >= MAX_DELIVERY_DISTANCE_KM;
+  const hasValidPoint = hasDeliveryPoint && roundedDistanceKm != null && !isOutOfRange;
+
+  const shippingCost = hasValidPoint ? getShippingCost(roundedDistanceKm) : null;
   const productTotal = items.reduce(
     (total, item) => total + Number(item.price) * item.quantity,
     0,
   );
-  const grandTotal = productTotal + (shippingCost || 0) + PACKAGING_FEE;
+  const grandTotal =
+    shippingCost != null ? productTotal + shippingCost + PACKAGING_FEE : null;
 
   const handlePickProof = () => {
     launchImageLibrary(
@@ -127,18 +144,20 @@ const PaymentScreen = ({navigation, route}) => {
     );
   };
 
-  const handleConfirmLocation = async result => {
+  const handleConfirmLocation = result => {
     setPickerVisible(false);
     applyLocation(
       {latitude: result.latitude, longitude: result.longitude},
       result.address,
     );
 
-    const nextDistance = haversineDistanceKm(
-      result.latitude,
-      result.longitude,
-      store.latitude,
-      store.longitude,
+    const nextDistance = roundDistanceKm(
+      haversineDistanceKm(
+        result.latitude,
+        result.longitude,
+        store.latitude,
+        store.longitude,
+      ),
     );
 
     if (nextDistance >= MAX_DELIVERY_DISTANCE_KM) {
@@ -146,21 +165,19 @@ const PaymentScreen = ({navigation, route}) => {
         'Di luar jangkauan',
         `Jarak alamat ini ${formatDistance(
           nextDistance,
-        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km. Silakan pilih alamat lain.`,
-        [{text: 'Kembali ke Home', onPress: () => navigation.navigate('Home')}],
+        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km. Pilih alamat lain atau kembali ke Home.`,
+        [
+          {
+            text: 'Ganti Alamat',
+            onPress: () => setPickerVisible(true),
+          },
+          {
+            text: 'Kembali ke Home',
+            onPress: () => navigation.navigate('Home'),
+            style: 'cancel',
+          },
+        ],
       );
-      return;
-    }
-
-    // Simpan titik baru ke profil supaya tidak perlu GPS lagi.
-    try {
-      await profileService.updateProfile({
-        location: result.address || address,
-        latitude: result.latitude,
-        longitude: result.longitude,
-      });
-    } catch (error) {
-      logger.error('Failed to save profile location:', error);
     }
   };
 
@@ -173,7 +190,7 @@ const PaymentScreen = ({navigation, route}) => {
       Alert.alert('Alamat kosong', 'Isi alamat pengiriman terlebih dahulu.');
       return;
     }
-    if (distanceKm == null || distanceKm >= MAX_DELIVERY_DISTANCE_KM) {
+    if (roundedDistanceKm == null || roundedDistanceKm >= MAX_DELIVERY_DISTANCE_KM) {
       Alert.alert('Di luar jangkauan', 'Alamat pengiriman lebih dari 5 km dari toko.');
       return;
     }
@@ -223,9 +240,6 @@ const PaymentScreen = ({navigation, route}) => {
     );
   }
 
-  const isOutOfRange =
-    distanceKm != null && distanceKm >= MAX_DELIVERY_DISTANCE_KM;
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FF6B35" barStyle="light-content" />
@@ -249,15 +263,27 @@ const PaymentScreen = ({navigation, route}) => {
           />
           <View style={styles.rowBetween}>
             <Text style={styles.muted}>
-              {distanceKm != null ? `Jarak: ${formatDistance(distanceKm)}` : 'Jarak belum diketahui'}
+              {coords
+                ? roundedDistanceKm != null
+                  ? `Jarak: ${formatDistance(roundedDistanceKm)}`
+                  : 'Jarak belum diketahui'
+                : 'Titik pengiriman belum diatur'}
             </Text>
             <TouchableOpacity onPress={() => setPickerVisible(true)}>
-              <Text style={styles.link}>Ubah Titik</Text>
+              <Text style={styles.link}>
+                {coords ? 'Ubah Titik' : 'Atur Titik'}
+              </Text>
             </TouchableOpacity>
           </View>
+          {!coords && (
+            <Text style={styles.muted}>
+              Pilih titik pengiriman dulu untuk melihat ongkir dan total.
+            </Text>
+          )}
           {isOutOfRange && (
             <Text style={styles.danger}>
-              Alamat ini lebih dari {MAX_DELIVERY_DISTANCE_KM} km dari toko.
+              Jarak {formatDistance(roundedDistanceKm)} melebihi{' '}
+              {MAX_DELIVERY_DISTANCE_KM} km. Pilih titik lain.
             </Text>
           )}
         </View>
@@ -312,7 +338,9 @@ const PaymentScreen = ({navigation, route}) => {
           </View>
           <View style={[styles.rowBetween, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Keseluruhan</Text>
-            <Text style={styles.totalValue}>{formatRupiah(grandTotal)}</Text>
+            <Text style={styles.totalValue}>
+              {grandTotal != null ? formatRupiah(grandTotal) : '-'}
+            </Text>
           </View>
         </View>
 
@@ -334,19 +362,21 @@ const PaymentScreen = ({navigation, route}) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.orderButton,
-            (isSubmitting || isUploading || isOutOfRange) && styles.orderButtonDisabled,
-          ]}
-          onPress={handleCreateOrder}
-          disabled={isSubmitting || isUploading || isOutOfRange}>
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.orderButtonText}>Buat Pesanan</Text>
-          )}
-        </TouchableOpacity>
+        {hasValidPoint && (
+          <TouchableOpacity
+            style={[
+              styles.orderButton,
+              (isSubmitting || isUploading) && styles.orderButtonDisabled,
+            ]}
+            onPress={handleCreateOrder}
+            disabled={isSubmitting || isUploading}>
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.orderButtonText}>Buat Pesanan</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       <LocationPicker
