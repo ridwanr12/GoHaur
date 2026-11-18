@@ -27,7 +27,7 @@ const pages = [
     image: require('../../assets/onb2.png'),
   },
   {
-    text: 'Kurir siap antar pesanan, nikmati makanan tanpa repot!',
+    text: 'Pesanan diantar langsung oleh penjual, makanan sampai tanpa repot!',
     image: require('../../assets/onb3.png'),
   },
 ];

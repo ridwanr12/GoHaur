@@ -5,7 +5,8 @@ Panduan untuk AI agent / developer yang mengerjakan aplikasi React Native ini.
 ## Ringkasan
 
 Aplikasi mobile GoHaur (React Native 0.78, React 19, JavaScript).
-Tiga peran pengguna: `buyer`, `seller`, `courier`. Navigasi dipisah per role.
+Dua peran pengguna: `buyer` dan `seller`. Pengiriman dilakukan seller sendiri
+(role courier sudah dihapus).
 
 ## Perintah Penting
 
@@ -33,7 +34,8 @@ src/context/               # AuthContext, CartContext
 src/navigation/            # root-navigator + navigator per role
 src/screens/               # seluruh layar UI
 src/hooks/                 # hook bersama (useProfileData)
-src/utils/                 # tokenStorage, logger
+src/components/            # komponen bersama (LocationPicker)
+src/utils/                 # tokenStorage, logger, geo (Haversine), orderStatus, imageUrl
 src/constants/styles.js    # font & warna
 ```
 
@@ -50,12 +52,25 @@ src/constants/styles.js    # font & warna
 6. State global auth hanya lewat `AuthContext`; jangan baca/tulis token langsung dari screen.
 7. Navigasi mengikuti role di `root-navigator.js`. Jangan tambahkan bypass development.
 8. Jangan menyimpan file bernama `* copy.js` atau kode mati lain.
+9. Jarak buyer-toko dihitung Haversine (`src/utils/geo.js`). Maksimal 5 km.
+   Backend tetap menghitung ulang; jangan percaya angka dari client.
+10. Ongkir mengikuti tier `src/utils/geo.js` dan HARUS sama dengan backend.
+11. Peta memakai Leaflet + OpenStreetMap di WebView (`src/components/LocationPicker.js`).
+    Jangan menambah Google Maps API key tanpa keputusan baru.
+12. Upload gambar lewat `uploadService.uploadImage` -> `POST /api/uploads`.
+    Jangan kirim base64 ke database.
 
 ## Catatan Teknis
 
 - Emulator Android mengakses host lewat `http://10.0.2.2:3000`.
-  Perangkat fisik memakai IP LAN, misal `http://192.168.1.10:3000`.
+  Perangkat fisik memakai IP LAN, misal `http://192.168.1.10:3000`,
+  atau `http://localhost:3000` bila memakai `adb reverse tcp:3000 tcp:3000`.
   Ubah di `src/api/config.js`.
+- Dependency native: `@react-native-community/geolocation`,
+  `react-native-image-picker`, `react-native-webview`.
+  Setelah mengubah dependency native, wajib rebuild (`npm run android`).
+- Alur status order: `pending -> accepted -> shipped -> completed`,
+  plus `rejected`. Label UI ada di `src/utils/orderStatus.js`.
 - Jest memakai mock untuk Reanimated, AsyncStorage, dan safe-area-context
   (lihat `jest.setup.js`).
 - Font Poppins ada di `assets/fonts/Poppins` dan didaftarkan via `react-native.config.js`
