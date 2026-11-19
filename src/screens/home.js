@@ -64,10 +64,11 @@ const RestaurantCard = ({item, navigation, distanceKm}) => {
     navigation.navigate('Store', {storeData: item});
   };
 
-  const ratingObj =
-    item.Ratings && item.Ratings.length > 0
-      ? item.Ratings[0]
-      : {average_rating: 0, amount: 0};
+  const ratingObj = item.Rating ||
+    (item.Ratings && item.Ratings.length > 0 ? item.Ratings[0] : null) || {
+      average_rating: 0,
+      amount: 0,
+    };
   const ratingText =
     ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
   const totalOrdersText =

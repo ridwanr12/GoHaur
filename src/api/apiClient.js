@@ -27,6 +27,7 @@ const request = async (
   method = 'GET',
   data = null,
   customHeaders = {},
+  options = {},
 ) => {
   // Menggabungkan BASE_URL dengan endpoint (contoh: http://localhost:5000 + /api/stores)
   const url = createUrl(endpoint);
@@ -52,7 +53,9 @@ const request = async (
     // Mengubah response dari HTTP menjadi format yang siap dipakai (JSON)
     return await handleResponse(response);
   } catch (error) {
-    logger.error('API request failed:', error);
+    if (!options.silent) {
+      logger.error('API request failed:', error);
+    }
     throw error;
   }
 };
@@ -62,8 +65,8 @@ const request = async (
  * Mempermudah memanggil `apiClient.get('/path')` dibanding menggunakan `fetch` berulang kali.
  */
 const apiClient = {
-  get: (endpoint, customHeaders = {}) => {
-    return request(endpoint, 'GET', null, customHeaders);
+  get: (endpoint, customHeaders = {}, options = {}) => {
+    return request(endpoint, 'GET', null, customHeaders, options);
   },
 
   post: (endpoint, data, customHeaders = {}) => {

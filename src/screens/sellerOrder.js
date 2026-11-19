@@ -14,7 +14,12 @@ import {
 import fonts from '../constants/styles';
 import {orderService} from '../api';
 import storeService from '../api/services/storeService';
-import {statusLabel, TAB_TO_STATUS, statusColor, statusBackground} from '../utils/orderStatus';
+import {
+  statusLabel,
+  TAB_TO_STATUS,
+  statusColor,
+  statusBackground,
+} from '../utils/orderStatus';
 import NotificationBell from '../components/NotificationBell';
 
 const OrderItem = ({item, onPress}) => {
@@ -84,7 +89,9 @@ const SellerOrderScreen = ({navigation}) => {
           setOrders([]);
           return;
         }
-        const response = await orderService.getStoreOrders(storeId);
+        const response = await orderService.getStoreOrders(storeId, {
+          limit: 100,
+        });
         const list = response.data?.orders || response.data || [];
         setOrders(Array.isArray(list) ? list : []);
       } catch (error) {
