@@ -28,6 +28,8 @@ const SellerStoreEditScreen = ({navigation}) => {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [coords, setCoords] = useState({latitude: null, longitude: null});
+  const [bankAccount, setBankAccount] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
   const [image, setImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,6 +49,8 @@ const SellerStoreEditScreen = ({navigation}) => {
         setName(data.name || '');
         setDescription(data.description || '');
         setAddress(data.address || '');
+        setBankAccount(data.bank_account || '');
+        setBankHolder(data.bank_account_holder || '');
         setCoords({
           latitude: data.latitude != null ? Number(data.latitude) : null,
           longitude: data.longitude != null ? Number(data.longitude) : null,
@@ -107,6 +111,8 @@ const SellerStoreEditScreen = ({navigation}) => {
         latitude: coords.latitude,
         longitude: coords.longitude,
         image,
+        bank_account: bankAccount.trim(),
+        bank_account_holder: bankHolder.trim(),
       });
       Alert.alert('Berhasil', 'Data toko tersimpan.', [
         {text: 'OK', onPress: () => navigation.goBack()},
@@ -187,6 +193,22 @@ const SellerStoreEditScreen = ({navigation}) => {
           onChangeText={setAddress}
           multiline
           placeholder="Alamat lengkap toko"
+        />
+
+        <Text style={styles.label}>Bank & Nomor Rekening</Text>
+        <TextInput
+          style={styles.input}
+          value={bankAccount}
+          onChangeText={setBankAccount}
+          placeholder="Contoh: BCA 129519240"
+        />
+
+        <Text style={styles.label}>Nama Rekening</Text>
+        <TextInput
+          style={styles.input}
+          value={bankHolder}
+          onChangeText={setBankHolder}
+          placeholder="Nama pemilik rekening"
         />
 
         <TouchableOpacity style={styles.locationButton} onPress={() => setPickerVisible(true)}>

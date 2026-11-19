@@ -74,15 +74,17 @@ const CartScreen = ({navigation}) => {
     let storeLat = vendor.latitude;
     let storeLng = vendor.longitude;
 
-    if (storeLat == null || storeLng == null) {
-      try {
-        const response = await storeService.getStoreById(vendor.id);
-        const store = response?.data?.store;
-        storeLat = store?.latitude != null ? Number(store.latitude) : null;
-        storeLng = store?.longitude != null ? Number(store.longitude) : null;
-      } catch (error) {
-        logger.error('Failed to load store location:', error);
+    // Selalu ambil data toko terbaru. Jangan pakai koordinat lama dari cart,
+    // karena seller bisa memindahkan lokasi toko setelah produk masuk keranjang.
+    try {
+      const response = await storeService.getStoreById(vendor.id);
+      const freshStore = response?.data?.store;
+      if (freshStore) {
+        storeLat = freshStore.latitude != null ? Number(freshStore.latitude) : storeLat;
+        storeLng = freshStore.longitude != null ? Number(freshStore.longitude) : storeLng;
       }
+    } catch (error) {
+      logger.error('Failed to load fresh store location:', error);
     }
 
     if (storeLat == null || storeLng == null) {

@@ -83,6 +83,11 @@ const EditProfileScreen = ({navigation, route}) => {
         bank_name: userData.bank_name || '',
         bank_account_number: userData.bank_account_number || '',
         bank_account_holder: userData.bank_account_holder || '',
+        bank_account:
+          userData.bank_account ||
+          [userData.bank_name, userData.bank_account_number]
+            .filter(Boolean)
+            .join(' '),
         description: userData.description || '',
         plateNumber: userData.plateNumber || userData.plate_number || '',
         profileImage: userData.profileImage
@@ -156,6 +161,7 @@ const EditProfileScreen = ({navigation, route}) => {
         bank_name: profile.bank_name,
         bank_account_number: profile.bank_account_number,
         bank_account_holder: profile.bank_account_holder,
+        bank_account: profile.bank_account,
         ...(userRole === 'seller' ? {description: profile.description} : null),
       };
 
@@ -356,26 +362,15 @@ const EditProfileScreen = ({navigation, route}) => {
                 onChangeText={text => setProfile({...profile, phone: text})}
               />
 
-              <Text style={styles.label}>Bank Refund</Text>
+              <Text style={styles.label}>Bank & Nomor Rekening</Text>
               <TextInput
                 style={styles.input}
-                placeholder="BCA / BNI / DANA"
-                value={profile.bank_name}
-                onChangeText={text => setProfile({...profile, bank_name: text})}
+                placeholder="Contoh: BCA 129519240"
+                value={profile.bank_account}
+                onChangeText={text => setProfile({...profile, bank_account: text})}
               />
 
-              <Text style={styles.label}>Nomor Rekening Refund</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Nomor rekening / e-wallet"
-                value={profile.bank_account_number}
-                keyboardType="number-pad"
-                onChangeText={text =>
-                  setProfile({...profile, bank_account_number: text})
-                }
-              />
-
-              <Text style={styles.label}>Nama Pemilik Rekening</Text>
+              <Text style={styles.label}>Nama Rekening</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Nama sesuai rekening"

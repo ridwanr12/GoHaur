@@ -17,6 +17,8 @@ import fonts from '../constants/styles';
 import {orderService} from '../api';
 import {resolveImageUrl} from '../utils/imageUrl';
 import {statusLabel} from '../utils/orderStatus';
+import OrderItemCard from '../components/OrderItemCard';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const NewOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
@@ -30,6 +32,7 @@ const NewOrderScreen = ({navigation, route}) => {
     orderData?.refund_status || 'not_required',
   );
   const [refundNote, setRefundNote] = useState('');
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   // Jika tidak ada data order, tampilkan pesan kosong
   if (!orderData) {
@@ -71,6 +74,7 @@ const NewOrderScreen = ({navigation, route}) => {
           quantity,
           price: lineTotal / quantity,
           note: through.note,
+          image: product.images?.[0] || null,
         };
       });
 
@@ -85,6 +89,9 @@ const NewOrderScreen = ({navigation, route}) => {
   const buyerBankName = orderData.buyer?.bank_name || '';
   const buyerBankNumber = orderData.buyer?.bank_account_number || '';
   const buyerBankHolder = orderData.buyer?.bank_account_holder || '';
+  const buyerBankAccount =
+    orderData.buyer?.bank_account ||
+    [buyerBankName, buyerBankNumber].filter(Boolean).join(' ');
   const deliveryFee = Number(orderData.shipping_cost || 0);
   const serviceFee = Number(orderData.packaging_fee ?? 2000);
 
@@ -217,22 +224,25 @@ const NewOrderScreen = ({navigation, route}) => {
 
         {/* Buyer Info */}
         <View style={styles.buyerContainer}>
-          <Text style={styles.buyerLabel}>Nama Pembeli:</Text>
-          <Text style={styles.buyerValue}>{buyer}</Text>
+          <View style={styles.buyerRow}>
+            <Text style={styles.buyerLabel}>Nama Pembeli:</Text>
+            <Text style={styles.buyerValue}>{buyer}</Text>
+          </View>
 
           <TouchableOpacity style={styles.waButton} onPress={handleChatBuyer}>
             <Text style={styles.waButtonText}>
-              {buyerPhone ? `Chat WhatsApp (${buyerPhone})` : 'Nomor HP buyer belum diisi'}
+              {buyerPhone
+                ? `Chat WhatsApp (${buyerPhone})`
+                : 'Nomor HP buyer belum diisi'}
             </Text>
           </TouchableOpacity>
 
           {(currentStatus === 'rejected' || refundStatus !== 'not_required') && (
             <View style={styles.refundBox}>
               <Text style={styles.refundTitle}>Rekening Refund Buyer</Text>
-              {buyerBankNumber ? (
+              {buyerBankAccount ? (
                 <Text style={styles.refundText}>
-                  {buyerBankName || 'Bank'} • {buyerBankNumber} •{' '}
-                  {buyerBankHolder || '-'}
+                  {buyerBankAccount} • {buyerBankHolder || '-'}
                 </Text>
               ) : (
                 <Text style={styles.refundText}>
@@ -247,48 +257,9 @@ const NewOrderScreen = ({navigation, route}) => {
         </View>
 
         {/* Order Items */}
-        <View style={styles.orderItemsContainer}>
-          {items.map((item, index) => (
-            <View
-              key={item.id}
-              style={[
-                styles.orderItem,
-                index === items.length - 1 && {borderBottomWidth: 0},
-              ]}>
-              <View style={styles.itemHeader}>
-                <Image
-                  source={
-                    item.Product?.images?.[0]
-                      ? {uri: item.Product.images[0]}
-                      : require('../../assets/food1.png')
-                  }
-                  style={styles.itemImage}
-                />
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>
-                    {item.Product?.name || 'Produk'}
-                  </Text>
-                  <Text style={styles.itemPrice}>
-                    Rp {(item.price || 0).toLocaleString('id-ID')}/ Item
-                  </Text>
-                  <View style={styles.noteContainer}>
-                    <Text style={styles.noteLabel}>Note:</Text>
-                    <Text style={styles.noteText}>{item.note}</Text>
-                  </View>
-                </View>
-                <View style={styles.quantityPriceContainer}>
-                  <Text style={styles.totalPrice}>
-                    Total: {formatCurrency(item.price * item.quantity)}
-                  </Text>
-                  <View style={styles.quantityContainer}>
-                    <Text style={styles.quantityLabel}>Kuantitas:</Text>
-                    <Text style={styles.quantityValue}>{item.quantity}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
+        {items.map((item, index) => (
+          <OrderItemCard key={item.id || index} item={item} />
+        ))}
 
         {/* Payment Summary */}
         <View style={styles.summaryContainer}>
@@ -321,14 +292,16 @@ const NewOrderScreen = ({navigation, route}) => {
         <View style={styles.proofContainer}>
           <Text style={styles.proofTitle}>Bukti Pembayaran</Text>
           <View style={styles.proofImageContainer}>
-            <Image
-              source={
-                orderData.payment_proof
-                  ? {uri: resolveImageUrl(orderData.payment_proof)}
-                  : require('../../assets/paymentSample.png')
-              }
-              style={styles.proofImage}
-            />
+            <TouchableOpacity onPress={() => setPreviewVisible(true)}>
+              <Image
+                source={
+                  orderData.payment_proof
+                    ? {uri: resolveImageUrl(orderData.payment_proof)}
+                    : require('../../assets/paymentSample.png')
+                }
+                style={styles.proofImage}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -424,6 +397,12 @@ const NewOrderScreen = ({navigation, route}) => {
           )}
         </View>
       </ScrollView>
+
+      <ImagePreviewModal
+        visible={previewVisible}
+        uri={orderData.payment_proof}
+        onClose={() => setPreviewVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -522,8 +501,6 @@ const styles = StyleSheet.create({
     color: '#FF7B00',
   },
   buyerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 15,
@@ -536,6 +513,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+  },
+  buyerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   buyerLabel: {
     fontSize: 14,

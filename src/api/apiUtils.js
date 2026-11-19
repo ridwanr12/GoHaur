@@ -3,17 +3,22 @@ import API_CONFIG from './config';
 // Fungsi untuk menangani respons dari fetch
 const handleResponse = async response => {
   if (!response.ok) {
-    // Jika respons bukan 2xx, coba parse error message
+    let message = response.statusText || 'Terjadi kesalahan pada server';
+
     try {
       const errorData = await response.json();
-      throw new Error(errorData.message || 'Terjadi kesalahan pada server');
-    } catch (error) {
-      throw new Error(
-        `${response.status}: ${
-          response.statusText || 'Terjadi kesalahan pada server'
-        }`,
-      );
+      if (Array.isArray(errorData?.message)) {
+        message = errorData.message.join(', ');
+      } else if (errorData?.message) {
+        message = String(errorData.message);
+      } else if (errorData?.error) {
+        message = String(errorData.error);
+      }
+    } catch (parseError) {
+      // Body bukan JSON; pakai statusText.
     }
+
+    throw new Error(`${response.status}: ${message}`);
   }
 
   // Cek jika respons kosong

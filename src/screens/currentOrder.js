@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,12 @@ import fonts from '../constants/styles';
 import {orderService} from '../api';
 import {statusLabel, statusColor} from '../utils/orderStatus';
 import {resolveImageUrl} from '../utils/imageUrl';
+import OrderItemCard from '../components/OrderItemCard';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const CurrentOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   if (!orderData) {
     return (
@@ -56,6 +59,7 @@ const CurrentOrderScreen = ({navigation, route}) => {
           quantity,
           price: lineTotal / quantity,
           note: through.note,
+          image: product.images?.[0] || null,
         };
       });
 
@@ -240,44 +244,7 @@ const CurrentOrderScreen = ({navigation, route}) => {
 
         {/* Order Items */}
         {items.map((item, index) => (
-          <View key={item.id || index} style={styles.itemContainer}>
-            <View style={styles.itemHeader}>
-              <Image
-                source={
-                  item.Product?.images?.[0]
-                    ? {uri: item.Product.images[0]}
-                    : require('../../assets/food1.png')
-                }
-                style={styles.itemImage}
-              />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>
-                  {item.Product?.name || 'Produk'}
-                </Text>
-                <Text style={styles.itemPrice}>
-                  Rp {(item.price || 0).toLocaleString('id-ID')}/ Item
-                </Text>
-              </View>
-              <View style={styles.itemTotal}>
-                <Text style={styles.totalText}>
-                  Total: Rp{' '}
-                  {(item.price * item.quantity).toLocaleString('id-ID')}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.itemFooter}>
-              <View style={styles.noteContainer}>
-                <Text style={styles.noteLabel}>Note:</Text>
-                <View style={styles.noteInputContainer}>
-                  <Text style={styles.noteText}>{item.note}</Text>
-                </View>
-              </View>
-              <View style={styles.quantityContainer}>
-                <Text style={styles.quantityLabel}>Kuantitas:</Text>
-                <Text style={styles.quantityValue}>{item.quantity}</Text>
-              </View>
-            </View>
-          </View>
+          <OrderItemCard key={item.id || index} item={item} />
         ))}
 
         {/* Payment Summary */}
@@ -312,17 +279,25 @@ const CurrentOrderScreen = ({navigation, route}) => {
         <View style={styles.proofContainer}>
           <Text style={styles.proofTitle}>Bukti Pembayaran</Text>
           <View style={styles.proofImageContainer}>
-            <Image
-              source={
-                orderData.payment_proof
-                  ? {uri: resolveImageUrl(orderData.payment_proof)}
-                  : require('../../assets/paymentSample.png')
-              }
-              style={styles.proofImage}
-            />
+            <TouchableOpacity onPress={() => setPreviewVisible(true)}>
+              <Image
+                source={
+                  orderData.payment_proof
+                    ? {uri: resolveImageUrl(orderData.payment_proof)}
+                    : require('../../assets/paymentSample.png')
+                }
+                style={styles.proofImage}
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      <ImagePreviewModal
+        visible={previewVisible}
+        uri={orderData.payment_proof}
+        onClose={() => setPreviewVisible(false)}
+      />
 
       {/* Action Button - fixed di bawah */}
       {renderActionButton() && (
