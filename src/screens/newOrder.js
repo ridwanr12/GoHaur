@@ -1,5 +1,5 @@
 import logger from '../utils/logger';
-import React, {useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
+import feedbackService from '../api/services/feedbackService';
 import {resolveImageUrl} from '../utils/imageUrl';
 import {statusLabel, statusColor} from '../utils/orderStatus';
 import OrderItemCard from '../components/OrderItemCard';
@@ -24,15 +25,44 @@ const NewOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
 
   // Hook wajib dipanggil sebelum early return apa pun
-  const [currentStatus, setCurrentStatus] = useState(orderData?.status || 'pending');
+  const [currentStatus, setCurrentStatus] = useState(
+    orderData?.status || 'pending',
+  );
   const [courierName, setCourierName] = useState(orderData?.courier_name || '');
-  const [courierPlate, setCourierPlate] = useState(orderData?.courier_plate || '');
+  const [courierPlate, setCourierPlate] = useState(
+    orderData?.courier_plate || '',
+  );
   const [rejectionReason, setRejectionReason] = useState('');
   const [refundStatus, setRefundStatus] = useState(
     orderData?.refund_status || 'not_required',
   );
   const [refundNote, setRefundNote] = useState('');
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  const loadFeedback = useCallback(async () => {
+    if (!orderData?.id) {
+      return;
+    }
+    try {
+      const response = await feedbackService.getOrderFeedback(orderData.id);
+      setFeedback(response?.data?.feedback || null);
+    } catch (error) {
+      setFeedback(null);
+    }
+  }, [orderData?.id]);
+
+  useEffect(() => {
+    loadFeedback();
+  }, [loadFeedback]);
+
+  const handleViewReview = () => {
+    navigation.navigate('ReviewOrder', {
+      orderData,
+      feedback,
+      readOnly: true,
+    });
+  };
 
   // Jika tidak ada data order, tampilkan pesan kosong
   if (!orderData) {
@@ -175,7 +205,10 @@ const NewOrderScreen = ({navigation, route}) => {
 
   const handleSendOrder = async () => {
     if (!courierName.trim() || !courierPlate.trim()) {
-      Alert.alert('Lengkapi data', 'Isi nama pengirim dan plat nomor kendaraan.');
+      Alert.alert(
+        'Lengkapi data',
+        'Isi nama pengirim dan plat nomor kendaraan.',
+      );
       return;
     }
     try {
@@ -184,7 +217,10 @@ const NewOrderScreen = ({navigation, route}) => {
         courier_plate: courierPlate.trim(),
       });
       setCurrentStatus('shipped');
-      Alert.alert('Pesanan dikirim', 'Buyer sudah bisa melihat status Dikirim.');
+      Alert.alert(
+        'Pesanan dikirim',
+        'Buyer sudah bisa melihat status Dikirim.',
+      );
     } catch (error) {
       logger.error(error);
       Alert.alert('Gagal', error?.message || 'Tidak dapat mengirim pesanan.');
@@ -208,18 +244,22 @@ const NewOrderScreen = ({navigation, route}) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Address Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionLabel}>Lokasi/ Alamat Tuju:</Text>
+        <View style={styles.addressContainer}>
+          <Text style={styles.addressLabel}>Lokasi/ Alamat Tuju:</Text>
           <Text style={styles.addressText}>{address}</Text>
           <Text style={styles.addressText}>
-            Jarak: {orderData.distance_km != null ? `${Number(orderData.distance_km).toFixed(2)} km` : '-'}
+            Jarak:{' '}
+            {orderData.distance_km != null
+              ? `${Number(orderData.distance_km).toFixed(2)} km`
+              : '-'}
           </Text>
         </View>
 
         {/* Status Section */}
         <View style={styles.statusContainer}>
           <Text style={styles.statusLabel}>Status:</Text>
-          <Text style={[styles.statusValue, {color: statusColor(currentStatus)}]}>
+          <Text
+            style={[styles.statusValue, {color: statusColor(currentStatus)}]}>
             {statusLabel(currentStatus)}
           </Text>
         </View>
@@ -239,7 +279,8 @@ const NewOrderScreen = ({navigation, route}) => {
             </Text>
           </TouchableOpacity>
 
-          {(currentStatus === 'rejected' || refundStatus !== 'not_required') && (
+          {(currentStatus === 'rejected' ||
+            refundStatus !== 'not_required') && (
             <View style={styles.refundBox}>
               <Text style={styles.refundTitle}>Rekening Refund Buyer</Text>
               {buyerBankAccount ? (
@@ -257,6 +298,14 @@ const NewOrderScreen = ({navigation, route}) => {
             </View>
           )}
         </View>
+
+        {feedback && (
+          <TouchableOpacity
+            style={styles.reviewButton}
+            onPress={handleViewReview}>
+            <Text style={styles.reviewButtonText}>Lihat Review</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Order Items */}
         {items.map((item, index) => (
@@ -317,10 +366,14 @@ const NewOrderScreen = ({navigation, route}) => {
                 value={rejectionReason}
                 onChangeText={setRejectionReason}
               />
-              <TouchableOpacity style={styles.processButton} onPress={handleProcessOrder}>
+              <TouchableOpacity
+                style={styles.processButton}
+                onPress={handleProcessOrder}>
                 <Text style={styles.processButtonText}>Proses Pesanan</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.rejectButton} onPress={handleRejectOrder}>
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={handleRejectOrder}>
                 <Text style={styles.rejectButtonText}>Tolak Pesanan</Text>
               </TouchableOpacity>
             </>
@@ -341,7 +394,9 @@ const NewOrderScreen = ({navigation, route}) => {
                 onChangeText={setCourierPlate}
                 autoCapitalize="characters"
               />
-              <TouchableOpacity style={styles.sendButton} onPress={handleSendOrder}>
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={handleSendOrder}>
                 <Text style={styles.sendButtonText}>Kirim Pesanan</Text>
               </TouchableOpacity>
 
@@ -351,7 +406,9 @@ const NewOrderScreen = ({navigation, route}) => {
                 value={rejectionReason}
                 onChangeText={setRejectionReason}
               />
-              <TouchableOpacity style={styles.rejectButton} onPress={handleRejectOrder}>
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={handleRejectOrder}>
                 <Text style={styles.rejectButtonText}>Batalkan Pesanan</Text>
               </TouchableOpacity>
             </>
@@ -379,8 +436,12 @@ const NewOrderScreen = ({navigation, route}) => {
                     value={refundNote}
                     onChangeText={setRefundNote}
                   />
-                  <TouchableOpacity style={styles.sendButton} onPress={handleRefund}>
-                    <Text style={styles.sendButtonText}>Refund Sudah Dikirim</Text>
+                  <TouchableOpacity
+                    style={styles.sendButton}
+                    onPress={handleRefund}>
+                    <Text style={styles.sendButtonText}>
+                      Refund Sudah Dikirim
+                    </Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -389,7 +450,8 @@ const NewOrderScreen = ({navigation, route}) => {
 
           {currentStatus === 'shipped' && (
             <Text style={styles.mutedText}>
-              Pesanan sedang dikirim oleh {orderData.courier_name || courierName} (
+              Pesanan sedang dikirim oleh{' '}
+              {orderData.courier_name || courierName} (
               {orderData.courier_plate || courierPlate}).
             </Text>
           )}
@@ -469,6 +531,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.poppinsRegular,
     color: '#666',
   },
+  reviewButton: {
+    backgroundColor: '#FF6B35',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reviewButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontFamily: fonts.poppinsBold,
+  },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -490,6 +564,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.poppinsMedium,
     color: '#000',
     marginRight: 60,
+  },
+  statusValue: {
+    fontSize: 14,
+    fontFamily: fonts.poppinsMedium,
   },
   // statusBadge: {
   //   // backgroundColor: '#FFC107',
@@ -525,6 +603,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.poppinsMedium,
     color: '#000',
     marginRight: 10,
+  },
+  buyerValue: {
+    fontSize: 14,
+    fontFamily: fonts.poppinsMedium,
+    color: '#000',
   },
   buyerName: {
     fontSize: 14,

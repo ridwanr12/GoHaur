@@ -9,6 +9,8 @@ import SellerProfileScreen from '../screens/sellerProfile'; // tambah import
 import SellerOrderScreen from '../screens/sellerOrder';
 import SellerStoreEditScreen from '../screens/sellerStoreEdit';
 import NewOrderScreen from '../screens/newOrder';
+import ReviewScreen from '../screens/review';
+import ReviewOrderScreen from '../screens/reviewOrder';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +29,8 @@ const SellerNavigator = () => {
       <Stack.Screen name="ProfileDetail" component={EditProfileScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
       <Stack.Screen name="NewOrder" component={NewOrderScreen} />
+      <Stack.Screen name="Review" component={ReviewScreen} />
+      <Stack.Screen name="ReviewOrder" component={ReviewOrderScreen} />
     </Stack.Navigator>
   );
 };

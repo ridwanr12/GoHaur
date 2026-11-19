@@ -246,15 +246,18 @@ const StoreScreen = ({navigation, route}) => {
               </Text>
               <Text style={styles.storeSold}>
                 {storeStats
-                  ? `${storeStats.completed_orders} pesanan selesai • ${storeStats.unique_buyers} pembeli • ${storeStats.review_count} ulasan`
+                  ? `${storeStats.items_sold ?? 0} Item Terjual`
                   : 'Memuat statistik...'}
               </Text>
             </View>
             <View style={styles.ratingContainer}>
               <Text style={styles.ratingText}>
-                {storeData.Rating?.average_rating ??
-                  storeData.Ratings?.[0]?.average_rating ??
-                  storeData.rating}
+                {Number(
+                  storeData.Rating?.average_rating ??
+                    storeData.Ratings?.[0]?.average_rating ??
+                    storeData.rating ??
+                    0,
+                ).toFixed(1)}
               </Text>
               <Text style={styles.ratingStar}>⭐</Text>
             </View>
@@ -356,9 +359,12 @@ const StoreScreen = ({navigation, route}) => {
                   <Text style={styles.modalStoreName}>{storeData.name}</Text>
                   <View style={styles.modalRating}>
                     <Text style={styles.modalRatingText}>
-                      {storeData.Rating?.average_rating ??
-                        storeData.Ratings?.[0]?.average_rating ??
-                        storeData.rating}
+                      {Number(
+                        storeData.Rating?.average_rating ??
+                          storeData.Ratings?.[0]?.average_rating ??
+                          storeData.rating ??
+                          0,
+                      ).toFixed(1)}
                     </Text>
                     <Text style={styles.modalRatingStar}>⭐</Text>
                   </View>
