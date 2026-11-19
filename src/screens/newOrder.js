@@ -16,7 +16,7 @@ import {
 import fonts from '../constants/styles';
 import {orderService} from '../api';
 import {resolveImageUrl} from '../utils/imageUrl';
-import {statusLabel} from '../utils/orderStatus';
+import {statusLabel, statusColor} from '../utils/orderStatus';
 import OrderItemCard from '../components/OrderItemCard';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
@@ -219,7 +219,9 @@ const NewOrderScreen = ({navigation, route}) => {
         {/* Status Section */}
         <View style={styles.statusContainer}>
           <Text style={styles.statusLabel}>Status:</Text>
-          <Text style={styles.statusValue}>{statusLabel(currentStatus)}</Text>
+          <Text style={[styles.statusValue, {color: statusColor(currentStatus)}]}>
+            {statusLabel(currentStatus)}
+          </Text>
         </View>
 
         {/* Buyer Info */}
