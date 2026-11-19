@@ -13,18 +13,19 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {feedbackService} from '../api';
+import storeService from '../api/services/storeService';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const ReviewScreen = ({navigation, route}) => {
   const storeData = route.params?.storeData || {
-    id: '1',
-    name: 'Sate Joko Khas Haur Pancuh',
-    location: 'Blok A No. 12',
-    totalSold: '14123123 Item Terjual',
-    rating: '4.5/5.0',
+    id: null,
+    name: 'Nama Toko',
+    location: '',
   };
 
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -45,6 +46,22 @@ const ReviewScreen = ({navigation, route}) => {
     };
 
     fetchReviews();
+  }, [storeData.id]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!storeData.id) {
+        return;
+      }
+      try {
+        const response = await storeService.getStoreStats(storeData.id);
+        setStats(response?.data?.stats || null);
+      } catch (error) {
+        logger.error('Failed to fetch store stats:', error);
+      }
+    };
+
+    fetchStats();
   }, [storeData.id]);
 
   const handleBack = () => {
@@ -70,17 +87,29 @@ const ReviewScreen = ({navigation, route}) => {
       <View style={styles.storeInfoContainer}>
         <View style={styles.storeInfoLeft}>
           <Image
-            source={require('../../assets/restaurant.png')}
+            source={
+              storeData.image
+                ? {uri: resolveImageUrl(storeData.image)}
+                : require('../../assets/restaurant.png')
+            }
             style={styles.storeImage}
           />
           <View style={styles.storeDetails}>
             <Text style={styles.storeName}>{storeData.name}</Text>
-            <Text style={styles.storeLocation}>{storeData.location}</Text>
-            <Text style={styles.storeSold}>{storeData.totalSold}</Text>
+            <Text style={styles.storeLocation}>
+              {storeData.address || storeData.location || ''}
+            </Text>
+            <Text style={styles.storeSold}>
+              {stats
+                ? `${stats.completed_orders} pesanan selesai • ${stats.unique_buyers} pembeli • ${stats.review_count} ulasan`
+                : 'Memuat statistik...'}
+            </Text>
           </View>
         </View>
         <View style={styles.ratingContainer}>
-          <Text style={styles.ratingText}>{storeData.rating}</Text>
+          <Text style={styles.ratingText}>
+            {stats ? `${Number(stats.average_rating).toFixed(1)}/5.0` : '-'}
+          </Text>
           <Image
             source={require('../../assets/star.png')}
             style={styles.ratingStar}
@@ -127,7 +156,9 @@ const ReviewScreen = ({navigation, route}) => {
                     />
                     <View style={styles.reviewerInfo}>
                       <Text style={styles.reviewerName}>
-                        {review.User?.name || 'Anonim'}
+                        {review.User?.username ||
+                          review.User?.name ||
+                          'Anonim'}
                       </Text>
                       <Text style={styles.reviewText}>
                         {review.description}

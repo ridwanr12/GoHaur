@@ -173,7 +173,7 @@ const SellerHomeScreen = ({navigation}) => {
                   {/* Tombol Lihat Review */}
                   <TouchableOpacity
                     style={styles.reviewButton}
-                    onPress={() => navigation.navigate('Review')}>
+                    onPress={() => navigation.navigate('Review', {storeData})}>
                     <Text style={styles.reviewButtonText}>
                       Lihat Review Toko
                     </Text>

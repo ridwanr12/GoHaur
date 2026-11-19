@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import productService from '../api/services/productService';
+import storeService from '../api/services/storeService';
 import profileService from '../api/services/profileService';
 import {useCart} from '../context/CartContext';
 import {getCurrentCoordinates} from '../utils/location';
@@ -47,6 +48,27 @@ const StoreScreen = ({navigation, route}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const {addToCart} = useCart();
   const [buyerCoords, setBuyerCoords] = useState(null);
+  const [storeStats, setStoreStats] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!storeData.id) {
+      return undefined;
+    }
+
+    storeService
+      .getStoreStats(storeData.id)
+      .then(response => {
+        if (active) {
+          setStoreStats(response?.data?.stats || null);
+        }
+      })
+      .catch(error => logger.error('Failed to load store stats:', error));
+
+    return () => {
+      active = false;
+    };
+  }, [storeData.id]);
 
   useEffect(() => {
     const loadLocation = async () => {
@@ -172,8 +194,7 @@ const StoreScreen = ({navigation, route}) => {
   };
 
   const handleViewReview = () => {
-    logger.log('Lihat review toko');
-    navigation.navigate('Review');
+    navigation.navigate('Review', {storeData});
   };
 
   const handleGoToCart = () => {
@@ -224,7 +245,9 @@ const StoreScreen = ({navigation, route}) => {
                 {storeData.description || storeData.location}
               </Text>
               <Text style={styles.storeSold}>
-                {storeData.totalSold || 0} Item Terjual
+                {storeStats
+                  ? `${storeStats.completed_orders} pesanan selesai • ${storeStats.unique_buyers} pembeli • ${storeStats.review_count} ulasan`
+                  : 'Memuat statistik...'}
               </Text>
             </View>
             <View style={styles.ratingContainer}>

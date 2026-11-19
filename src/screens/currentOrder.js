@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
+import feedbackService from '../api/services/feedbackService';
 import {statusLabel, statusColor} from '../utils/orderStatus';
 import {resolveImageUrl} from '../utils/imageUrl';
 import OrderItemCard from '../components/OrderItemCard';
@@ -20,6 +21,35 @@ import ImagePreviewModal from '../components/ImagePreviewModal';
 const CurrentOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadFeedback = async () => {
+      if (!orderData?.id) {
+        return;
+      }
+      try {
+        const response = await feedbackService.getOrderFeedback(orderData.id);
+        if (active) {
+          setFeedback(response?.data?.feedback || null);
+        }
+      } catch (error) {
+        if (active) {
+          setFeedback(null);
+        }
+      }
+    };
+
+    const unsubscribe = navigation.addListener('focus', loadFeedback);
+    loadFeedback();
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [navigation, orderData?.id]);
 
   if (!orderData) {
     return (
@@ -124,7 +154,11 @@ const CurrentOrderScreen = ({navigation, route}) => {
   };
 
   const handleReviewPesanan = () => {
-    navigation.navigate('ReviewOrder', {orderData});
+    navigation.navigate('ReviewOrder', {
+      orderData,
+      feedback,
+      readOnly: Boolean(feedback),
+    });
   };
 
   const renderActionButton = () => {
@@ -142,7 +176,9 @@ const CurrentOrderScreen = ({navigation, route}) => {
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleReviewPesanan}>
-            <Text style={styles.actionButtonText}>Review Pesanan</Text>
+            <Text style={styles.actionButtonText}>
+              {feedback ? 'Lihat Review' : 'Review Pesanan'}
+            </Text>
           </TouchableOpacity>
         );
       default:

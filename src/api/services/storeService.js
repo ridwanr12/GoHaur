@@ -29,6 +29,11 @@ const storeService = {
     return apiClient.put(`/api/stores/${id}`, storeData);
   },
 
+  // Mendapatkan statistik toko (order selesai, pembeli, ulasan, rating)
+  getStoreStats: id => {
+    return apiClient.get(`/api/stores/${id}/stats`);
+  },
+
   // Menghapus toko
   deleteStore: id => {
     return apiClient.delete(`/api/stores/${id}`);

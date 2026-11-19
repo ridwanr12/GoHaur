@@ -70,6 +70,10 @@ src/constants/styles.js    # font & warna
     memindahkan lokasi toko.
 16. Detail pesanan memakai `OrderItemCard` bersama dan `ImagePreviewModal`
     untuk bukti pembayaran. Jangan menduplikasi layout produk di screen lain.
+17. Review hanya bisa dibuat sekali. Setelah ada feedback, tombol detail berubah
+    menjadi "Lihat Review" dan layar review dibuka read-only. Jangan menambah
+    jalur edit review di UI.
+18. Statistik toko diambil dari `storeService.getStoreStats`.
 
 ## Catatan Teknis
 
