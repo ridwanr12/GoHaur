@@ -1,6 +1,18 @@
 import logger from '../utils/logger';
-import React, {createContext, useState, useEffect, useContext} from 'react';
-import {getToken, getUserData} from '../utils/tokenStorage';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from 'react';
+import {
+  getToken,
+  getUserData,
+  removeToken,
+  removeUserData,
+} from '../utils/tokenStorage';
+import apiClient from '../api/apiClient';
 import {authService} from '../api';
 
 // Membuat objek Context. Context memungkinkan kita melempar data (state)
@@ -15,6 +27,20 @@ export const AuthProvider = ({children}) => {
   const [user, setUser] = useState(null); // Menyimpan objek profil user (termasuk role)
   const [token, setToken] = useState(null); // Menyimpan token JWT
   const [isLoading, setIsLoading] = useState(true); // Loading awal ketika mengecek AsyncStorage
+
+  // Dipanggil apiClient saat server membalas 401 (token kedaluwarsa/invalid).
+  // Sesi dibersihkan sehingga RootNavigator kembali ke layar login.
+  const handleUnauthorized = useCallback(async () => {
+    logger.warn('Sesi berakhir, token tidak valid. Login ulang diperlukan.');
+    await removeToken();
+    await removeUserData();
+    setUser(null);
+    setToken(null);
+  }, []);
+
+  useEffect(() => {
+    apiClient.setUnauthorizedHandler(handleUnauthorized);
+  }, [handleUnauthorized]);
 
   // useEffect ini berjalan SATU KALI saat aplikasi baru saja dibuka.
   // Tugasnya: mengecek apakah di penyimpanan HP (AsyncStorage) sudah ada token login sebelumnya.
@@ -49,6 +75,7 @@ export const AuthProvider = ({children}) => {
       const response = await authService.login(credentials);
       setUser(response.data.user || {});
       setToken(response.data.token);
+      apiClient.setUnauthorizedHandler(handleUnauthorized);
       return response;
     } catch (error) {
       throw error;
@@ -64,6 +91,7 @@ export const AuthProvider = ({children}) => {
       if (response.data.token) {
         setUser(response.data.user || {});
         setToken(response.data.token);
+        apiClient.setUnauthorizedHandler(handleUnauthorized);
       }
       return response;
     } catch (error) {
@@ -83,6 +111,8 @@ export const AuthProvider = ({children}) => {
     } catch (error) {
       logger.error('Logout error:', error);
     } finally {
+      await removeToken();
+      await removeUserData();
       setUser(null);
       setToken(null);
     }

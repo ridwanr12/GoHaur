@@ -3,6 +3,30 @@ import API_CONFIG from './config';
 import {handleResponse, createUrl, timeoutPromise} from './apiUtils';
 import {getToken} from '../utils/tokenStorage';
 
+// Callback global saat server membalas 401 (token kedaluwarsa/tidak valid).
+// AuthContext mendaftarkan handler untuk logout otomatis.
+let unauthorizedHandler = null;
+let unauthorizedNotified = false;
+
+const setUnauthorizedHandler = handler => {
+  unauthorizedHandler = handler || null;
+  unauthorizedNotified = false;
+};
+
+const notifyUnauthorized = () => {
+  if (unauthorizedNotified) {
+    return;
+  }
+  unauthorizedNotified = true;
+  if (typeof unauthorizedHandler === 'function') {
+    try {
+      unauthorizedHandler();
+    } catch (error) {
+      // abaikan; logout lokal tetap jalan lewat state AuthContext
+    }
+  }
+};
+
 /**
  * Fungsi untuk menyematkan (inject) Token JWT ke dalam Headers setiap request HTTP.
  * Ini memastikan bahwa backend mengenali siapa user yang sedang mengakses API (terotentikasi).
@@ -51,10 +75,15 @@ const request = async (
       fetch(url, config),
     );
     // Mengubah response dari HTTP menjadi format yang siap dipakai (JSON)
-    return await handleResponse(response);
+    const parsed = await handleResponse(response);
+    unauthorizedNotified = false;
+    return parsed;
   } catch (error) {
     if (!options.silent) {
       logger.error('API request failed:', error);
+    }
+    if (String(error?.message).startsWith('401')) {
+      notifyUnauthorized();
     }
     throw error;
   }
@@ -65,6 +94,9 @@ const request = async (
  * Mempermudah memanggil `apiClient.get('/path')` dibanding menggunakan `fetch` berulang kali.
  */
 const apiClient = {
+  // Didaftarkan oleh AuthContext agar 401 di mana pun memicu logout.
+  setUnauthorizedHandler,
+
   get: (endpoint, customHeaders = {}, options = {}) => {
     return request(endpoint, 'GET', null, customHeaders, options);
   },
@@ -98,17 +130,26 @@ const apiClient = {
       name: file.fileName || `upload-${Date.now()}.jpg`,
     });
 
-    const response = await timeoutPromise(
-      API_CONFIG.TIMEOUT * 3,
-      fetch(createUrl(endpoint), {
-        method: 'POST',
-        // Jangan set Content-Type; fetch akan mengisi boundary sendiri.
-        headers: token ? {Authorization: `Bearer ${token}`} : {},
-        body: form,
-      }),
-    );
+    try {
+      const response = await timeoutPromise(
+        API_CONFIG.TIMEOUT * 3,
+        fetch(createUrl(endpoint), {
+          method: 'POST',
+          // Jangan set Content-Type; fetch akan mengisi boundary sendiri.
+          headers: token ? {Authorization: `Bearer ${token}`} : {},
+          body: form,
+        }),
+      );
 
-    return await handleResponse(response);
+      const parsed = await handleResponse(response);
+      unauthorizedNotified = false;
+      return parsed;
+    } catch (error) {
+      if (String(error?.message).startsWith('401')) {
+        notifyUnauthorized();
+      }
+      throw error;
+    }
   },
 };
 
