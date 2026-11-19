@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
-import {statusLabel, TAB_TO_STATUS} from '../utils/orderStatus';
+import {statusLabel, TAB_TO_STATUS, statusColor, statusBackground} from '../utils/orderStatus';
 import NotificationBell from '../components/NotificationBell';
 
 // Komponen untuk menampilkan item pesanan
@@ -35,8 +35,14 @@ const OrderItem = ({item, onPress}) => {
   return (
     <TouchableOpacity style={styles.orderCard} onPress={() => onPress(item)}>
       <View style={styles.orderHeader}>
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusText}>{statusLabel(item.status)}</Text>
+        <View
+          style={[
+            styles.statusContainer,
+            {backgroundColor: statusBackground(item.status)},
+          ]}>
+          <Text style={[styles.statusText, {color: statusColor(item.status)}]}>
+            {statusLabel(item.status)}
+          </Text>
         </View>
         <Text style={styles.dateText}>{dateStr}</Text>
       </View>

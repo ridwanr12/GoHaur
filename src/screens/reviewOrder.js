@@ -12,12 +12,13 @@ import {
   ScrollView,
 } from 'react-native';
 import fonts from '../constants/styles';
-import {reviewService} from '../api'; // sesuaikan dengan api kamu
+import {feedbackService} from '../api';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const ReviewOrderScreen = ({navigation, route}) => {
-  const {orderData} = route.params || {};
-  const [rating, setRating] = useState(5);
-  const [description, setDescription] = useState('');
+  const {orderData, feedback, readOnly = false} = route.params || {};
+  const [rating, setRating] = useState(feedback?.rating || 5);
+  const [description, setDescription] = useState(feedback?.description || '');
 
   // Ambil info toko dari orderData
   const storeName =
@@ -30,21 +31,31 @@ const ReviewOrderScreen = ({navigation, route}) => {
     null;
 
   const handleSave = async () => {
+    if (readOnly) {
+      return;
+    }
+    if (!orderData?.id) {
+      Alert.alert('Gagal', 'Data pesanan tidak ditemukan.');
+      return;
+    }
     if (rating === 0) {
       Alert.alert('Rating diperlukan', 'Pilih bintang terlebih dahulu.');
       return;
     }
     try {
-      await reviewService.createReview({
-        order_id: orderData?.id,
+      await feedbackService.createFeedback({
+        order_id: orderData.id,
         rating,
         description,
       });
       Alert.alert('Berhasil', 'Review berhasil disimpan!', [
-        {text: 'OK', onPress: () => navigation.navigate('Home')},
+        {text: 'OK', onPress: () => navigation.goBack()},
       ]);
     } catch (error) {
-      Alert.alert('Gagal', 'Tidak dapat menyimpan review.');
+      Alert.alert(
+        'Gagal',
+        error?.message || 'Tidak dapat menyimpan review.',
+      );
     }
   };
 
@@ -62,7 +73,9 @@ const ReviewOrderScreen = ({navigation, route}) => {
             style={styles.backButtonIcon}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Review Pesanan</Text>
+        <Text style={styles.headerTitle}>
+          {readOnly ? 'Review Kamu' : 'Review Pesanan'}
+        </Text>
       </View>
 
       <ScrollView
@@ -72,7 +85,9 @@ const ReviewOrderScreen = ({navigation, route}) => {
         <View style={styles.storeContainer}>
           <Image
             source={
-              storeImage ? {uri: storeImage} : require('../../assets/food1.png')
+              storeImage
+                ? {uri: resolveImageUrl(storeImage)}
+                : require('../../assets/food1.png')
             }
             style={styles.storeImage}
           />
@@ -85,7 +100,10 @@ const ReviewOrderScreen = ({navigation, route}) => {
         {/* Bintang Rating */}
         <View style={styles.starsContainer}>
           {[1, 2, 3, 4, 5].map(star => (
-            <TouchableOpacity key={star} onPress={() => setRating(star)}>
+            <TouchableOpacity
+              key={star}
+              disabled={readOnly}
+              onPress={() => setRating(star)}>
               <Text
                 style={[
                   styles.star,
@@ -102,7 +120,9 @@ const ReviewOrderScreen = ({navigation, route}) => {
 
         {/* Deskripsi Review */}
         <View style={styles.descriptionContainer}>
-          <Text style={styles.descriptionLabel}>Deskripsi Review</Text>
+          <Text style={styles.descriptionLabel}>
+            {readOnly ? 'Review Kamu' : 'Deskripsi Review'}
+          </Text>
           <TextInput
             style={styles.textInput}
             placeholder="Tulis review kamu di sini..."
@@ -111,17 +131,25 @@ const ReviewOrderScreen = ({navigation, route}) => {
             numberOfLines={5}
             value={description}
             onChangeText={setDescription}
+            editable={!readOnly}
             textAlignVertical="top"
           />
+          {readOnly && (
+            <Text style={styles.readOnlyNote}>
+              Review yang sudah dikirim tidak dapat diedit.
+            </Text>
+          )}
         </View>
       </ScrollView>
 
       {/* Tombol Simpan - fixed di bawah */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Simpan</Text>
-        </TouchableOpacity>
-      </View>
+      {!readOnly && (
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Simpan</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -232,6 +260,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontFamily: fonts.poppinsBold,
+  },
+  readOnlyNote: {
+    marginTop: 10,
+    fontSize: 12,
+    fontFamily: fonts.poppinsRegular,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

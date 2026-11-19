@@ -35,3 +35,21 @@ export function statusColor(status) {
       return '#FF9800';
   }
 }
+
+/**
+ * Warna background badge status, senada dengan statusColor.
+ */
+export function statusBackground(status) {
+  switch (String(status || '').toLowerCase()) {
+    case 'accepted':
+      return '#FFF3E0';
+    case 'shipped':
+      return '#E3F2FD';
+    case 'completed':
+      return '#E8F5E9';
+    case 'rejected':
+      return '#FFEBEE';
+    default:
+      return '#FFF3E0';
+  }
+}

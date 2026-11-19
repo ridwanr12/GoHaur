@@ -17,6 +17,7 @@ import {launchImageLibrary} from 'react-native-image-picker';
 import fonts from '../constants/styles';
 import orderService from '../api/services/orderService';
 import profileService from '../api/services/profileService';
+import storeService from '../api/services/storeService';
 import uploadService from '../api/services/uploadService';
 import {useCart} from '../context/CartContext';
 import {
@@ -44,6 +45,31 @@ const PaymentScreen = ({navigation, route}) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [liveStore, setLiveStore] = useState(null);
+
+  // Ambil data toko terbaru. Cart bisa menyimpan koordinat lama kalau seller
+  // memindahkan lokasi toko setelah produk masuk keranjang.
+  useEffect(() => {
+    let active = true;
+    if (!store?.id) {
+      return undefined;
+    }
+
+    storeService
+      .getStoreById(store.id)
+      .then(response => {
+        if (active && response?.data?.store) {
+          setLiveStore(response.data.store);
+        }
+      })
+      .catch(error => logger.error('Failed to refresh store:', error));
+
+    return () => {
+      active = false;
+    };
+  }, [store?.id]);
+
+  const effectiveStore = liveStore || store;
 
   const applyLocation = useCallback(
     (nextCoords, nextAddress) => {
@@ -61,7 +87,8 @@ const PaymentScreen = ({navigation, route}) => {
       const user = response?.data?.user;
 
       const hasProfilePoint = user?.latitude != null && user?.longitude != null;
-      const hasStorePoint = store?.latitude != null && store?.longitude != null;
+      const hasStorePoint =
+        effectiveStore?.latitude != null && effectiveStore?.longitude != null;
 
       if (hasProfilePoint && hasStorePoint) {
         const profileCoords = {
@@ -71,8 +98,8 @@ const PaymentScreen = ({navigation, route}) => {
         const profileDistance = haversineDistanceKm(
           profileCoords.latitude,
           profileCoords.longitude,
-          store.latitude,
-          store.longitude,
+          effectiveStore.latitude,
+          effectiveStore.longitude,
         );
 
         if (profileDistance < MAX_DELIVERY_DISTANCE_KM) {
@@ -89,23 +116,27 @@ const PaymentScreen = ({navigation, route}) => {
       setCoords(null);
       setAddress('');
     }
-  }, [applyLocation, store]);
+  }, [applyLocation, effectiveStore]);
 
   useEffect(() => {
     loadSavedLocation();
   }, [loadSavedLocation]);
 
   const distanceKm = useMemo(() => {
-    if (!coords || store?.latitude == null || store?.longitude == null) {
+    if (
+      !coords ||
+      effectiveStore?.latitude == null ||
+      effectiveStore?.longitude == null
+    ) {
       return null;
     }
     return haversineDistanceKm(
       coords.latitude,
       coords.longitude,
-      store.latitude,
-      store.longitude,
+      effectiveStore.latitude,
+      effectiveStore.longitude,
     );
-  }, [coords, store]);
+  }, [coords, effectiveStore]);
 
   const hasDeliveryPoint = Boolean(coords);
   const roundedDistanceKm = distanceKm != null ? roundDistanceKm(distanceKm) : null;
@@ -155,8 +186,8 @@ const PaymentScreen = ({navigation, route}) => {
       haversineDistanceKm(
         result.latitude,
         result.longitude,
-        store.latitude,
-        store.longitude,
+        effectiveStore.latitude,
+        effectiveStore.longitude,
       ),
     );
 
@@ -220,10 +251,23 @@ const PaymentScreen = ({navigation, route}) => {
       ]);
     } catch (error) {
       logger.error('Failed to create order:', error);
-      Alert.alert(
-        'Gagal',
-        error?.message || 'Pesanan gagal dibuat. Periksa kembali data pesanan.',
-      );
+      const message = String(error?.message || '');
+
+      if (/distance|jarak/i.test(message)) {
+        Alert.alert('Di luar jangkauan', message, [
+          {text: 'Ganti Alamat', onPress: () => setPickerVisible(true)},
+          {
+            text: 'Kembali ke Home',
+            onPress: () => navigation.navigate('Home'),
+            style: 'cancel',
+          },
+        ]);
+      } else {
+        Alert.alert(
+          'Gagal',
+          message || 'Pesanan gagal dibuat. Periksa kembali data pesanan.',
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -290,22 +334,37 @@ const PaymentScreen = ({navigation, route}) => {
 
         <View style={styles.card}>
           <View style={styles.storeRow}>
-            {store.image ? (
-              <Image source={{uri: resolveImageUrl(store.image)}} style={styles.storeImage} />
+            {effectiveStore.image ? (
+              <Image
+                source={{uri: resolveImageUrl(effectiveStore.image)}}
+                style={styles.storeImage}
+              />
             ) : (
-              <Image source={require('../../assets/restaurant.png')} style={styles.storeImage} />
+              <Image
+                source={require('../../assets/restaurant.png')}
+                style={styles.storeImage}
+              />
             )}
             <View style={{flex: 1}}>
-              <Text style={styles.storeName}>{store.name}</Text>
+              <Text style={styles.storeName}>{effectiveStore.name}</Text>
               <Text style={styles.muted} numberOfLines={2}>
-                {store.description || 'Deskripsi toko'}
+                {effectiveStore.description || 'Deskripsi toko'}
               </Text>
             </View>
           </View>
           <Text style={styles.bankLabel}>Info Pembayaran Toko</Text>
-          <Text style={styles.bankText}>
-            {store.description || 'Penjual belum menuliskan nomor rekening.'}
-          </Text>
+          {effectiveStore.bank_account ? (
+            <>
+              <Text style={styles.bankText}>{effectiveStore.bank_account}</Text>
+              <Text style={styles.bankText}>
+                a/n {effectiveStore.bank_account_holder || '-'}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.bankText}>
+              Penjual belum mengisi rekening pembayaran.
+            </Text>
+          )}
         </View>
 
         <View style={styles.card}>

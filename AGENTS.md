@@ -65,6 +65,15 @@ src/constants/styles.js    # font & warna
     Ikon lonceng memakai `src/components/NotificationBell.js`. Jangan mengembalikan data mock.
 14. Refund dicatat manual. Seller menandai lewat `orderService.refundOrder`.
     Nomor HP buyer dipakai untuk membuka `wa.me`, tanpa chat in-app.
+15. Cart dan payment wajib mengambil data toko terbaru (`getStoreById`).
+    Jangan memakai koordinat toko dari data cart karena bisa basi setelah seller
+    memindahkan lokasi toko.
+16. Detail pesanan memakai `OrderItemCard` bersama dan `ImagePreviewModal`
+    untuk bukti pembayaran. Jangan menduplikasi layout produk di screen lain.
+17. Review hanya bisa dibuat sekali. Setelah ada feedback, tombol detail berubah
+    menjadi "Lihat Review" dan layar review dibuka read-only. Jangan menambah
+    jalur edit review di UI.
+18. Statistik toko diambil dari `storeService.getStoreStats`.
 
 ## Catatan Teknis
 
