@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -13,6 +14,8 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import storeService from '../api/services/storeService';
+import {resolveImageUrl} from '../utils/imageUrl';
+import NotificationBell from '../components/NotificationBell';
 
 const SellerHomeScreen = ({navigation}) => {
   const [storeData, setStoreData] = useState(null);
@@ -29,7 +32,7 @@ const SellerHomeScreen = ({navigation}) => {
           setProducts(store.Products || []);
         }
       } catch (error) {
-        console.error('Failed to fetch store:', error);
+        logger.error('Failed to fetch store:', error);
         // tambah ini aja
         if (error.response?.status === 404) {
           setStoreData(null);
@@ -71,7 +74,7 @@ const SellerHomeScreen = ({navigation}) => {
       <Image
         source={
           item.images?.[0]
-            ? {uri: item.images[0]}
+            ? {uri: resolveImageUrl(item.images[0])}
             : require('../../assets/food1.png')
         }
         style={styles.productImage}
@@ -111,12 +114,7 @@ const SellerHomeScreen = ({navigation}) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Toko Saya</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
+        <NotificationBell navigation={navigation} />
       </View>
 
       {loading ? (
@@ -136,7 +134,11 @@ const SellerHomeScreen = ({navigation}) => {
                   {/* Info Toko */}
                   <View style={styles.storeInfoContainer}>
                     <Image
-                      source={require('../../assets/food1.png')}
+                      source={
+                        storeData?.image
+                          ? {uri: resolveImageUrl(storeData.image)}
+                          : require('../../assets/food1.png')
+                      }
                       style={styles.storeImage}
                     />
                     <View style={styles.storeDetails}>
@@ -160,6 +162,13 @@ const SellerHomeScreen = ({navigation}) => {
                       </Text>
                     </View>
                   </View>
+
+                  {/* Tombol Edit Toko */}
+                  <TouchableOpacity
+                    style={[styles.reviewButton, {marginTop: 8}]}
+                    onPress={() => navigation.navigate('StoreEdit')}>
+                    <Text style={styles.reviewButtonText}>Edit Toko</Text>
+                  </TouchableOpacity>
 
                   {/* Tombol Lihat Review */}
                   <TouchableOpacity

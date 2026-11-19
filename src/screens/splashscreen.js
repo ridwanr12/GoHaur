@@ -6,7 +6,7 @@ import {useAuth} from '../context/AuthContext';
 
 const SplashScreen = () => {
   const navigation = useNavigation();
-  const {isAuthenticated, isLoading} = useAuth();
+  const {isAuthenticated} = useAuth();
 
   useEffect(() => {
     // Navigasi ke halaman berikutnya setelah 3 detik
@@ -33,9 +33,6 @@ const SplashScreen = () => {
           style={styles.logo}
           resizeMode="contain"
         />
-        {/* <Text style={styles.tagline}>
-          HAUR PANCUH 2 - MAKAN ENAK, PESAN PRAKTIS!
-        </Text> */}
       </View>
     </View>
   );

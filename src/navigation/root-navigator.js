@@ -5,13 +5,7 @@ import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import AuthNavigator from './auth-navigator';
 import BuyerNavigator from './buyer-navigator';
 import SellerNavigator from './seller-navigator';
-import CourierNavigator from './courier-navigator';
-import colors from '../constants/styles'; // asumsi ada file colors
 
-// ========================================
-// 🔧 DEV ONLY - Ubah sesuai kebutuhan testing
-const DEV_BYPASS = __DEV__ && false; // ganti false jika mau balik normal
-const DEV_ROLE = 'courier'; // 'buyer' | 'seller' | 'courier'
 // ========================================
 
 /**
@@ -23,19 +17,6 @@ const DEV_ROLE = 'courier'; // 'buyer' | 'seller' | 'courier'
 const RootNavigator = () => {
   // Mengambil state global dari AuthContext
   const {isAuthenticated, isLoading, user} = useAuth();
-
-  // Bypass semua logic auth saat development
-  if (DEV_BYPASS) {
-    switch (DEV_ROLE) {
-      case 'seller':
-        return <SellerNavigator />;
-      case 'courier':
-        return <CourierNavigator />;
-      case 'buyer':
-      default:
-        return <BuyerNavigator />;
-    }
-  }
 
   // Saat pertama aplikasi dibuka, isLoading bernilai true (mengecek storage)
   if (isLoading) {
@@ -67,7 +48,7 @@ const RootNavigator = () => {
   // }
 
   // Jika terotentikasi, cek role dari pengguna
-  const roles = user?.roles; // ["buyer"] atau ["seller"] atau ["courier"]
+  const roles = user?.roles; // ["buyer"] atau ["seller"]
   const role = Array.isArray(roles)
     ? roles[0]
     : user?.role || user?.role_name || 'buyer';
@@ -75,8 +56,6 @@ const RootNavigator = () => {
   switch (role.toLowerCase()) {
     case 'seller':
       return <SellerNavigator />;
-    case 'courier':
-      return <CourierNavigator />;
     case 'buyer':
     default:
       return <BuyerNavigator />;

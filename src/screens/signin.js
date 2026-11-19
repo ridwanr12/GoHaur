@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -8,7 +9,6 @@ import {
   Image,
   ScrollView,
   SafeAreaView,
-  ActivityIndicator,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {useAuth} from '../context/AuthContext';
@@ -17,13 +17,8 @@ import {Alert} from 'react-native';
 const SigninScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const {login} = useAuth(); // Ambil fungsi login dari AuthContext
 
-  // Fungsi untuk melihat screen review tapi gabisa
-  const handleViewReview = () => {
-    navigation.navigate('ReviewScreen');
-  };
+  const {login} = useAuth(); // Ambil fungsi login dari AuthContext
 
   const handleSignin = async () => {
     if (!email || !password) {
@@ -31,16 +26,14 @@ const SigninScreen = ({navigation}) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       // Panggil fungsi login dari AuthContext, bukan authService langsung.
       // Ini akan memperbarui state global (user, token) sehingga RootNavigator
       // secara otomatis akan memindahkan kita ke halaman (Navigator) yang tepat.
       const response = await login({email, password});
-      console.log('Login berhasil:', response.data);
+      logger.log('Login berhasil:', response.data);
       const role = response?.data?.user?.roles || [];
-      console.log('Role user yang login:', role);
+      logger.log('Role user yang login:', role);
       Alert.alert(
         'Login Berhasil',
         `Login berhasil dengan role: ${role.join(', ')}`,
@@ -50,13 +43,12 @@ const SigninScreen = ({navigation}) => {
       // dan langsung menampilkan BuyerNavigator (yang layar pertamanya adalah Home)
       // berdasarkan state token yang sudah terisi.
     } catch (error) {
-      console.error('Login gagal:', error.message);
+      logger.error('Login gagal:', error.message);
       Alert.alert(
         'Login Gagal',
         error.response?.data?.message || 'Terjadi kesalahan pada server',
       );
     } finally {
-      setIsLoading(false);
     }
   };
 

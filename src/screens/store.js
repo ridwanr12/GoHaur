@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -11,10 +12,19 @@ import {
   SafeAreaView,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import fonts from '../constants/styles';
 import productService from '../api/services/productService';
+import profileService from '../api/services/profileService';
 import {useCart} from '../context/CartContext';
+import {getCurrentCoordinates} from '../utils/location';
+import {
+  haversineDistanceKm,
+  MAX_DELIVERY_DISTANCE_KM,
+  formatDistance,
+} from '../utils/geo';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const StoreScreen = ({navigation, route}) => {
   const storeData = route.params?.storeData || {
@@ -36,17 +46,46 @@ const StoreScreen = ({navigation, route}) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const {addToCart} = useCart();
+  const [buyerCoords, setBuyerCoords] = useState(null);
+
+  useEffect(() => {
+    const loadLocation = async () => {
+      try {
+        const response = await profileService.getProfile();
+        const user = response?.data?.user;
+        if (user?.latitude != null && user?.longitude != null) {
+          setBuyerCoords({
+            latitude: Number(user.latitude),
+            longitude: Number(user.longitude),
+          });
+          return;
+        }
+      } catch (error) {
+        logger.error('Failed to load buyer location:', error);
+      }
+
+      try {
+        const coords = await getCurrentCoordinates();
+        setBuyerCoords(coords);
+      } catch (error) {
+        logger.error('Location unavailable:', error);
+      }
+    };
+    loadLocation();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!storeData.id) return;
+      if (!storeData.id) {
+        return;
+      }
       try {
         const res = await productService.getStoreProducts(storeData.id);
         if (res && res.data && res.data.products) {
           setProducts(res.data.products);
         }
       } catch (error) {
-        console.error('Failed to fetch products:', error);
+        logger.error('Failed to fetch products:', error);
       } finally {
         setLoading(false);
       }
@@ -57,9 +96,11 @@ const StoreScreen = ({navigation, route}) => {
   // Tambahkan useEffect untuk menampilkan popup produk saat halaman dibuka
   useEffect(() => {
     if (showProductPopup && selectedProductId) {
-      const product = products.find(p => p.id === parseInt(selectedProductId));
+      const product = products.find(
+        p => p.id?.toString() === selectedProductId?.toString(),
+      );
       if (product) {
-        console.log('Auto opening product detail:', product.name);
+        logger.log('Auto opening product detail:', product.name);
         setSelectedProduct(product);
         setModalVisible(true);
       }
@@ -68,8 +109,8 @@ const StoreScreen = ({navigation, route}) => {
 
   // Tambahkan useEffect untuk memantau perubahan state
   useEffect(() => {
-    console.log('Modal visibility changed:', modalVisible);
-    console.log('Selected product:', selectedProduct?.name);
+    logger.log('Modal visibility changed:', modalVisible);
+    logger.log('Selected product:', selectedProduct?.name);
   }, [modalVisible, selectedProduct]);
 
   const handleBack = () => {
@@ -77,13 +118,61 @@ const StoreScreen = ({navigation, route}) => {
   };
 
   const handleAddToCart = product => {
-    // Add to cart default 1 item
-    addToCart(storeData, product, 1);
-    console.log('Produk ditambahkan ke keranjang:', product.id);
+    const proceed = () => {
+      addToCart(storeData, product, 1);
+      logger.log('Produk ditambahkan ke keranjang:', product.id);
+    };
+
+    if (storeData.latitude == null || storeData.longitude == null) {
+      Alert.alert(
+        'Lokasi toko belum diatur',
+        'Kamu masih bisa menambah ke keranjang, tetapi pesanan belum bisa diproses sampai penjual mengatur titik toko.',
+        [
+          {text: 'Batal', style: 'cancel'},
+          {text: 'Tetap Tambah', onPress: proceed},
+        ],
+      );
+      return;
+    }
+
+    if (!buyerCoords) {
+      Alert.alert(
+        'Lokasi belum aktif',
+        'Kamu masih bisa menambah ke keranjang. Titik pengiriman akan diminta di halaman pembayaran.',
+        [
+          {text: 'Batal', style: 'cancel'},
+          {text: 'Tetap Tambah', onPress: proceed},
+        ],
+      );
+      return;
+    }
+
+    const distanceKm = haversineDistanceKm(
+      buyerCoords.latitude,
+      buyerCoords.longitude,
+      storeData.latitude,
+      storeData.longitude,
+    );
+
+    if (distanceKm >= MAX_DELIVERY_DISTANCE_KM) {
+      Alert.alert(
+        'Di luar jangkauan',
+        `Lokasi kamu ${formatDistance(
+          distanceKm,
+        )} dari toko. Kamu masih bisa menambah ke keranjang, tetapi titik pengiriman di pembayaran harus kurang dari ${MAX_DELIVERY_DISTANCE_KM} km.`,
+        [
+          {text: 'Batal', style: 'cancel'},
+          {text: 'Tetap Tambah', onPress: proceed},
+        ],
+      );
+      return;
+    }
+
+    proceed();
   };
 
   const handleViewReview = () => {
-    console.log('Lihat review toko');
+    logger.log('Lihat review toko');
     navigation.navigate('Review');
   };
 
@@ -91,13 +180,9 @@ const StoreScreen = ({navigation, route}) => {
     navigation.navigate('Cart');
   };
 
-  const formatCurrency = amount => {
-    return `Rp ${amount.toLocaleString('id-ID')}`;
-  };
-
-  // Pastikan fungsi ini berjalan dengan menambahkan console.log
+  // Pastikan fungsi ini berjalan dengan menambahkan logger.log
   const openProductDetail = product => {
-    console.log('Opening product detail:', product.name);
+    logger.log('Opening product detail:', product.name);
     setSelectedProduct(product);
     setModalVisible(true);
   };
@@ -173,7 +258,7 @@ const StoreScreen = ({navigation, route}) => {
             products.map(product => {
               const imageSource =
                 product.images && product.images.length > 0
-                  ? {uri: product.images[0]}
+                  ? {uri: resolveImageUrl(product.images[0])}
                   : require('../../assets/food1.png');
 
               return (
@@ -264,7 +349,7 @@ const StoreScreen = ({navigation, route}) => {
                       source={
                         selectedProduct.images &&
                         selectedProduct.images.length > 0
-                          ? {uri: selectedProduct.images[0]}
+                          ? {uri: resolveImageUrl(selectedProduct.images[0])}
                           : require('../../assets/food1.png')
                       }
                       style={styles.modalProductImage}
@@ -278,8 +363,11 @@ const StoreScreen = ({navigation, route}) => {
                       </Text>
                       <Text style={styles.modalProductPrice}>
                         {/* {formatCurrency(selectedProduct.price)}/ Item */}
-                        Rp {parseFloat(selectedProduct.price).toLocaleString('id-ID')}/
-                      Item
+                        Rp{' '}
+                        {parseFloat(selectedProduct.price).toLocaleString(
+                          'id-ID',
+                        )}
+                        / Item
                       </Text>
 
                       <Text style={styles.modalDescriptionTitle}>
@@ -634,7 +722,7 @@ export default StoreScreen;
 //     if (typeof setModalVisible === 'function') {
 //       setModalVisible(true);
 //     } else {
-//       console.warn('setModalVisible is not defined');
+//       logger.warn('setModalVisible is not defined');
 //     }
 //   }}>
 //   <Text style={styles.cartButtonText}>Test Modal</Text>

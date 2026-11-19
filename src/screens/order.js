@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -12,13 +13,14 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
+import {statusLabel, TAB_TO_STATUS} from '../utils/orderStatus';
+import NotificationBell from '../components/NotificationBell';
 
 // Komponen untuk menampilkan item pesanan
 const OrderItem = ({item, onPress}) => {
   // Format total harga
-  const total = item.total_amount
-    ? `Rp ${item.total_amount.toLocaleString('id-ID')}`
-    : 'Rp 0';
+  const totalValue = Number(item.total_price ?? item.total_amount ?? 0);
+  const total = `Rp ${totalValue.toLocaleString('id-ID')}`;
 
   // Format tanggal (asumsi format ISO dari backend)
   const dateObj = new Date(item.created_at);
@@ -34,7 +36,7 @@ const OrderItem = ({item, onPress}) => {
     <TouchableOpacity style={styles.orderCard} onPress={() => onPress(item)}>
       <View style={styles.orderHeader}>
         <View style={styles.statusContainer}>
-          <Text style={styles.statusText}>{item.status || 'Diproses'}</Text>
+          <Text style={styles.statusText}>{statusLabel(item.status)}</Text>
         </View>
         <Text style={styles.dateText}>{dateStr}</Text>
       </View>
@@ -65,6 +67,7 @@ const OrderScreen = ({navigation}) => {
     'Semua',
     'Menunggu Diproses',
     'Sedang Diproses',
+    'Ditolak',
     'Dikirim',
     'Selesai',
   ];
@@ -80,7 +83,7 @@ const OrderScreen = ({navigation}) => {
           setOrders(response.data);
         }
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
+        logger.error('Failed to fetch orders:', error);
       } finally {
         setLoading(false);
       }
@@ -99,7 +102,6 @@ const OrderScreen = ({navigation}) => {
   const handleHome = () => navigation.navigate('Home');
   const handleCart = () => navigation.navigate('Cart');
   const handleProfile = () => navigation.navigate('Profile');
-  const handleNotification = () => navigation.navigate('Notification');
 
   const goToOrderDetail = item => {
     // Arahkan ke CurrentOrder dengan membawa data asli
@@ -108,20 +110,18 @@ const OrderScreen = ({navigation}) => {
 
   // Filter orders berdasarkan tab
   const getFilteredOrders = () => {
-    if (activeTab === 'Semua') return orders;
-    return orders.filter(order => order.status === activeTab);
+    if (activeTab === 'Semua') {
+      return orders;
+    }
+    const status = TAB_TO_STATUS[activeTab];
+    return orders.filter(order => order.status === status);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Pesanan</Text>
-        <TouchableOpacity onPress={handleNotification}>
-          <Image
-            source={require('../../assets/notification.png')}
-            style={styles.notificationIcon}
-          />
-        </TouchableOpacity>
+        <NotificationBell navigation={navigation} />
       </View>
 
       <View style={styles.tabContainer}>

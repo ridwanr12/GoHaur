@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {createContext, useState, useEffect, useContext} from 'react';
 import {getToken, getUserData} from '../utils/tokenStorage';
 import {authService} from '../api';
@@ -29,7 +30,7 @@ export const AuthProvider = ({children}) => {
           setUser(userData);
         }
       } catch (error) {
-        console.error('Error loading auth data:', error);
+        logger.error('Error loading auth data:', error);
       } finally {
         setIsLoading(false); // Selesai mengecek
       }
@@ -80,7 +81,7 @@ export const AuthProvider = ({children}) => {
       // comment kalau backend tidak punya endpoint logout
       // await authService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
     } finally {
       setUser(null);
       setToken(null);

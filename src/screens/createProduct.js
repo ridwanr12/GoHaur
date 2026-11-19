@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -10,10 +11,13 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-// import {launchImageLibrary} from 'react-native-image-picker';
+import {launchImageLibrary} from 'react-native-image-picker';
 import fonts from '../constants/styles';
-import productService from '../api/services/productService'; // tambah ini
+import productService from '../api/services/productService';
+import uploadService from '../api/services/uploadService';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const CreateProductScreen = ({navigation, route}) => {
   const {productData, isEdit, storeId} = route.params || {}; // tambah storeId
@@ -27,19 +31,30 @@ const CreateProductScreen = ({navigation, route}) => {
     productData?.price ? String(parseFloat(productData.price)) : '',
   );
   const [image, setImage] = useState(productData?.images?.[0] || null);
+  const [stock, setStock] = useState(
+    productData?.stock != null ? String(productData.stock) : '0',
+  );
+  const [isUploading, setIsUploading] = useState(false);
 
-  // const handlePickImage = () => {
-  //   launchImageLibrary({mediaType: 'photo', quality: 0.8}, response => {
-  //     if (!response.didCancel && response.assets?.[0]) {
-  //       setImage(response.assets[0].uri);
-  //     }
-  //   });
-  // };
-
-  // Ganti handlePickImage jadi dummy
   const handlePickImage = () => {
-    // Dummy untuk testing - pakai placeholder image
-    setImage('https://via.placeholder.com/300?text=Produk');
+    launchImageLibrary(
+      {mediaType: 'photo', quality: 0.8, selectionLimit: 1},
+      async response => {
+        if (response.didCancel || !response.assets?.length) {
+          return;
+        }
+        setIsUploading(true);
+        try {
+          const url = await uploadService.uploadImage(response.assets[0]);
+          setImage(url);
+        } catch (error) {
+          logger.error('Failed to upload product image:', error);
+          Alert.alert('Gagal', 'Gambar produk gagal diunggah.');
+        } finally {
+          setIsUploading(false);
+        }
+      },
+    );
   };
 
   const handleRemoveImage = () => {
@@ -52,20 +67,18 @@ const CreateProductScreen = ({navigation, route}) => {
       return;
     }
     try {
+      const payload = {
+        name,
+        description,
+        price: parseFloat(price),
+        stock: parseInt(stock, 10) || 0,
+        images: image ? [image] : [],
+      };
+
       if (isEdit) {
-        await productService.updateProduct(productData.id, {
-          name,
-          description,
-          price: parseFloat(price),
-          images: image ? [image] : [],
-        });
+        await productService.updateProduct(productData.id, payload);
       } else {
-        await productService.createProduct(storeId, {
-          name,
-          description,
-          price: parseFloat(price),
-          images: image ? [image] : [],
-        });
+        await productService.createProduct(storeId, payload);
       }
       Alert.alert(
         'Berhasil',
@@ -73,7 +86,7 @@ const CreateProductScreen = ({navigation, route}) => {
         [{text: 'OK', onPress: () => navigation.goBack()}],
       );
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       Alert.alert('Gagal', 'Tidak dapat menyimpan produk.');
     }
   };
@@ -138,23 +151,44 @@ const CreateProductScreen = ({navigation, route}) => {
           />
         </View>
 
+        {/* Stok */}
+        <Text style={styles.label}>Stok</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="0"
+          placeholderTextColor="#999"
+          keyboardType="numeric"
+          value={stock}
+          onChangeText={setStock}
+        />
+
         {/* Gambar Produk */}
         <Text style={styles.label}>Gambar Produk</Text>
 
         {/* Upload area - selalu tampil */}
         <TouchableOpacity
           style={styles.uploadContainer}
-          onPress={handlePickImage}>
-          <Text style={styles.uploadIcon}>🖼️+</Text>
-          <Text style={styles.uploadText}>
-            Tekan untuk menambahkan gambar produk (Max 1 gambar)
-          </Text>
+          onPress={handlePickImage}
+          disabled={isUploading}>
+          {isUploading ? (
+            <ActivityIndicator color="#FF6B35" />
+          ) : (
+            <>
+              <Text style={styles.uploadIcon}>🖼️+</Text>
+              <Text style={styles.uploadText}>
+                Tekan untuk menambahkan gambar produk (Max 1 gambar)
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* Preview gambar kalau sudah dipilih */}
         {image && (
           <View style={styles.previewContainer}>
-            <Image source={{uri: image}} style={styles.previewImage} />
+            <Image
+              source={{uri: resolveImageUrl(image)}}
+              style={styles.previewImage}
+            />
             <TouchableOpacity
               style={styles.removeImageButton}
               onPress={handleRemoveImage}>

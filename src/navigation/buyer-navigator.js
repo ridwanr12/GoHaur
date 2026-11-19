@@ -60,7 +60,7 @@ const BuyerNavigator = () => {
         }}
       /> */}
 
-      {/* Setiap Stack.Screen mewakili sebuah halaman. 
+      {/* Setiap Stack.Screen mewakili sebuah halaman.
           name="..." adalah identifier unik yang digunakan untuk berpindah halaman (misal: navigation.navigate('Cart')) */}
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Cart" component={CartScreen} />

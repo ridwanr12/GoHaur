@@ -9,14 +9,16 @@ const productService = {
   },
 
   // Mendapatkan detail produk berdasarkan ID
-  getProductById: (id) => {
+  getProductById: id => {
     return apiClient.get(`/api/products/${id}`);
   },
 
   // Mendapatkan semua produk dari toko tertentu
   getStoreProducts: (storeId, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const url = queryString ? `/api/products/store/${storeId}?${queryString}` : `/api/products/store/${storeId}`;
+    const url = queryString
+      ? `/api/products/store/${storeId}?${queryString}`
+      : `/api/products/store/${storeId}`;
     return apiClient.get(url);
   },
 
@@ -31,7 +33,7 @@ const productService = {
   },
 
   // Menghapus produk
-  deleteProduct: (id) => {
+  deleteProduct: id => {
     return apiClient.delete(`/api/products/${id}`);
   },
 };

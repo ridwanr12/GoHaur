@@ -1,595 +1,482 @@
-import React, {useState} from 'react';
+import logger from '../utils/logger';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   Image,
-  StatusBar,
   SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import {launchImageLibrary} from 'react-native-image-picker';
 import fonts from '../constants/styles';
-// import {launchImageLibrary} from 'react-native-image-picker';
-
-// ini screen payment, untuk upload bukti pembayaran, baru ke screen order
+import orderService from '../api/services/orderService';
+import profileService from '../api/services/profileService';
+import uploadService from '../api/services/uploadService';
+import {useCart} from '../context/CartContext';
+import {
+  getShippingCost,
+  haversineDistanceKm,
+  MAX_DELIVERY_DISTANCE_KM,
+  PACKAGING_FEE,
+  roundDistanceKm,
+  formatDistance,
+  formatRupiah,
+} from '../utils/geo';
+import LocationPicker from '../components/LocationPicker';
+import {resolveImageUrl} from '../utils/imageUrl';
 
 const PaymentScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
+  const store = orderData?.store;
+  const items = orderData?.items || [];
+  const {clearStoreFromCart} = useCart();
+
+  const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState(null);
+  const [proofFile, setProofFile] = useState(null);
+  const [proofUrl, setProofUrl] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+
+  const applyLocation = useCallback(
+    (nextCoords, nextAddress) => {
+      setCoords(nextCoords);
+      if (nextAddress) {
+        setAddress(nextAddress);
+      }
+    },
+    [],
+  );
+
+  const loadSavedLocation = useCallback(async () => {
+    try {
+      const response = await profileService.getProfile();
+      const user = response?.data?.user;
+
+      const hasProfilePoint = user?.latitude != null && user?.longitude != null;
+      const hasStorePoint = store?.latitude != null && store?.longitude != null;
+
+      if (hasProfilePoint && hasStorePoint) {
+        const profileCoords = {
+          latitude: Number(user.latitude),
+          longitude: Number(user.longitude),
+        };
+        const profileDistance = haversineDistanceKm(
+          profileCoords.latitude,
+          profileCoords.longitude,
+          store.latitude,
+          store.longitude,
+        );
+
+        if (profileDistance < MAX_DELIVERY_DISTANCE_KM) {
+          applyLocation(profileCoords, user.location || '');
+          return;
+        }
+      }
+
+      // Profil kosong atau terlalu jauh: titik pengiriman harus dipilih manual.
+      setCoords(null);
+      setAddress('');
+    } catch (error) {
+      logger.error('Failed to load profile location:', error);
+      setCoords(null);
+      setAddress('');
+    }
+  }, [applyLocation, store]);
+
+  useEffect(() => {
+    loadSavedLocation();
+  }, [loadSavedLocation]);
+
+  const distanceKm = useMemo(() => {
+    if (!coords || store?.latitude == null || store?.longitude == null) {
+      return null;
+    }
+    return haversineDistanceKm(
+      coords.latitude,
+      coords.longitude,
+      store.latitude,
+      store.longitude,
+    );
+  }, [coords, store]);
+
+  const hasDeliveryPoint = Boolean(coords);
+  const roundedDistanceKm = distanceKm != null ? roundDistanceKm(distanceKm) : null;
+  const isOutOfRange =
+    roundedDistanceKm != null && roundedDistanceKm >= MAX_DELIVERY_DISTANCE_KM;
+  const hasValidPoint = hasDeliveryPoint && roundedDistanceKm != null && !isOutOfRange;
+
+  const shippingCost = hasValidPoint ? getShippingCost(roundedDistanceKm) : null;
+  const productTotal = items.reduce(
+    (total, item) => total + Number(item.price) * item.quantity,
+    0,
+  );
+  const grandTotal =
+    shippingCost != null ? productTotal + shippingCost + PACKAGING_FEE : null;
+
+  const handlePickProof = () => {
+    launchImageLibrary(
+      {mediaType: 'photo', quality: 0.8, selectionLimit: 1},
+      async response => {
+        if (response.didCancel || !response.assets?.length) {
+          return;
+        }
+        const file = response.assets[0];
+        setProofFile(file);
+        setIsUploading(true);
+        try {
+          const url = await uploadService.uploadImage(file);
+          setProofUrl(url);
+        } catch (error) {
+          logger.error('Failed to upload payment proof:', error);
+          Alert.alert('Gagal', 'Bukti pembayaran gagal diunggah.');
+        } finally {
+          setIsUploading(false);
+        }
+      },
+    );
+  };
+
+  const handleConfirmLocation = result => {
+    setPickerVisible(false);
+    applyLocation(
+      {latitude: result.latitude, longitude: result.longitude},
+      result.address,
+    );
+
+    const nextDistance = roundDistanceKm(
+      haversineDistanceKm(
+        result.latitude,
+        result.longitude,
+        store.latitude,
+        store.longitude,
+      ),
+    );
+
+    if (nextDistance >= MAX_DELIVERY_DISTANCE_KM) {
+      Alert.alert(
+        'Di luar jangkauan',
+        `Jarak alamat ini ${formatDistance(
+          nextDistance,
+        )}. Maksimal ${MAX_DELIVERY_DISTANCE_KM} km. Pilih alamat lain atau kembali ke Home.`,
+        [
+          {
+            text: 'Ganti Alamat',
+            onPress: () => setPickerVisible(true),
+          },
+          {
+            text: 'Kembali ke Home',
+            onPress: () => navigation.navigate('Home'),
+            style: 'cancel',
+          },
+        ],
+      );
+    }
+  };
+
+  const handleCreateOrder = async () => {
+    if (!coords) {
+      Alert.alert('Lokasi belum ada', 'Tentukan titik pengiriman terlebih dahulu.');
+      return;
+    }
+    if (!address.trim()) {
+      Alert.alert('Alamat kosong', 'Isi alamat pengiriman terlebih dahulu.');
+      return;
+    }
+    if (roundedDistanceKm == null || roundedDistanceKm >= MAX_DELIVERY_DISTANCE_KM) {
+      Alert.alert('Di luar jangkauan', 'Alamat pengiriman lebih dari 5 km dari toko.');
+      return;
+    }
+    if (!proofUrl) {
+      Alert.alert('Bukti pembayaran', 'Unggah bukti pembayaran terlebih dahulu.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await orderService.createOrder({
+        store_id: store.id,
+        products: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          note: item.note || '',
+        })),
+        delivery_address: address.trim(),
+        delivery_latitude: coords.latitude,
+        delivery_longitude: coords.longitude,
+        payment_proof: proofUrl,
+      });
+
+      clearStoreFromCart(store.id);
+      Alert.alert('Berhasil', 'Pesanan dibuat. Menunggu konfirmasi penjual.', [
+        {text: 'OK', onPress: () => navigation.navigate('Order')},
+      ]);
+    } catch (error) {
+      logger.error('Failed to create order:', error);
+      Alert.alert(
+        'Gagal',
+        error?.message || 'Pesanan gagal dibuat. Periksa kembali data pesanan.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!orderData) {
     return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          {justifyContent: 'center', alignItems: 'center'},
-        ]}>
-        <Text style={{fontFamily: fonts.poppinsMedium, fontSize: 16}}>
-          Pesanan tidak ditemukan.
-        </Text>
-        <TouchableOpacity
-          style={{
-            marginTop: 20,
-            padding: 10,
-            backgroundColor: '#FF6B35',
-            borderRadius: 10,
-          }}
-          onPress={() => navigation.goBack()}>
-          <Text style={{color: 'white', fontFamily: fonts.poppinsMedium}}>
-            Kembali
-          </Text>
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <Text>Pesanan tidak ditemukan.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.link}>Kembali</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  const [paymentProof, setPaymentProof] = useState(null);
-
-  // Format items
-  const items = orderData.order_items || orderData.items || [];
-  const vendor = orderData.vendor || {
-    id: orderData.store_id || '1',
-    name: 'Restoran',
-    location: 'Alamat Restoran',
-    image: require('../../assets/restaurant.png'),
-  };
-  const deliveryFee = orderData.shipping_cost || orderData.deliveryFee || 0;
-  const serviceFee = 2000;
-
-  // Menghitung total harga produk
-  const calculateProductTotal = () => {
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
-
-  // Menghitung total keseluruhan
-  const calculateGrandTotal = () => {
-    return calculateProductTotal() + deliveryFee + serviceFee;
-  };
-
-  // Format currency
-  const formatCurrency = value => {
-    return `Rp ${value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-  };
-
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
-  const handleChooseImage = () => {
-    const options = {
-      mediaType: 'photo',
-      includeBase64: false,
-      maxHeight: 2000,
-      maxWidth: 2000,
-    };
-
-    // launchImageLibrary(options, response => {
-    //   if (response.didCancel) {
-    //     console.log('User cancelled image picker');
-    //   } else if (response.error) {
-    //     console.log('Image picker error: ', response.error);
-    //   } else {
-    //     let imageUri = response.assets[0].uri;
-    //     setPaymentProof(imageUri);
-    //   }
-    // });
-  };
-
-  const handleOrder = () => {
-    // Implementasi logika pesanan
-    console.log('Order placed successfully');
-    navigation.navigate('Order');
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FF6B35" barStyle="light-content" />
-
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Image
-            source={require('../../assets/back.png')}
-            style={styles.backButtonIcon}
-          />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Image source={require('../../assets/back.png')} style={styles.backIcon} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Pembayaran Pesanan</Text>
+        <View style={styles.backIcon} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Address Section */}
-        <View style={styles.addressContainer}>
-          <View style={styles.addressTextContainer}>
-            <Text style={styles.addressLabel}>Lokasi/ Alamat Tuju:</Text>
-            <Text style={styles.addressText}>
-              Jl. Raya Pancuh No. 21, Desa Sukamaju, Kecamatan Citarum,
-              Kabupaten Bandung, Jawa Barat 40915, Indonesia
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Lokasi / Alamat Tujuan</Text>
+          <TextInput
+            style={styles.addressInput}
+            value={address}
+            onChangeText={setAddress}
+            placeholder="Tulis alamat lengkap pengiriman"
+            multiline
+          />
+          <View style={styles.rowBetween}>
+            <Text style={styles.muted}>
+              {coords
+                ? roundedDistanceKm != null
+                  ? `Jarak: ${formatDistance(roundedDistanceKm)}`
+                  : 'Jarak belum diketahui'
+                : 'Titik pengiriman belum diatur'}
             </Text>
+            <TouchableOpacity onPress={() => setPickerVisible(true)}>
+              <Text style={styles.link}>
+                {coords ? 'Ubah Titik' : 'Atur Titik'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.changeButton}>
-            <Text style={styles.changeButtonText}>Ganti</Text>
-          </TouchableOpacity>
+          {!coords && (
+            <Text style={styles.muted}>
+              Pilih titik pengiriman dulu untuk melihat ongkir dan total.
+            </Text>
+          )}
+          {isOutOfRange && (
+            <Text style={styles.danger}>
+              Jarak {formatDistance(roundedDistanceKm)} melebihi{' '}
+              {MAX_DELIVERY_DISTANCE_KM} km. Pilih titik lain.
+            </Text>
+          )}
         </View>
 
-        {/* Vendor Section */}
-        <View style={styles.vendorSection}>
-          <View style={styles.vendorHeader}>
-            <Image source={vendor.image} style={styles.vendorImage} />
-            <View style={styles.vendorInfo}>
-              <Text style={styles.vendorName}>{vendor.name}</Text>
-              <Text style={styles.vendorAddress}>{vendor.location}</Text>
+        <View style={styles.card}>
+          <View style={styles.storeRow}>
+            {store.image ? (
+              <Image source={{uri: resolveImageUrl(store.image)}} style={styles.storeImage} />
+            ) : (
+              <Image source={require('../../assets/restaurant.png')} style={styles.storeImage} />
+            )}
+            <View style={{flex: 1}}>
+              <Text style={styles.storeName}>{store.name}</Text>
+              <Text style={styles.muted} numberOfLines={2}>
+                {store.description || 'Deskripsi toko'}
+              </Text>
             </View>
           </View>
+          <Text style={styles.bankLabel}>Info Pembayaran Toko</Text>
+          <Text style={styles.bankText}>
+            {store.description || 'Penjual belum menuliskan nomor rekening.'}
+          </Text>
+        </View>
 
-          {/* Food Items */}
-          {items.map((item, index) => (
-            <View
-              key={item.id}
-              style={[
-                styles.foodItem,
-                index === items.length - 1 && {borderBottomWidth: 0},
-              ]}>
-              <Image
-                source={
-                  item.image ||
-                  (item.Product?.images?.[0]
-                    ? {uri: item.Product.images[0]}
-                    : require('../../assets/food1.png'))
-                }
-                style={styles.foodImage}
-              />
-              <View style={styles.foodDetails}>
-                <Text style={styles.foodName}>
-                  {item.name || item.Product?.name || 'Produk'}
-                </Text>
-                <Text style={styles.foodPrice}>
-                  {formatCurrency(item.price)}/ Item
-                </Text>
-                <View style={styles.noteContainer}>
-                  <Text style={styles.noteLabel}>Note: </Text>
-                  <View style={styles.noteInputContainer}>
-                    <Text style={styles.noteInput}>{item.note}</Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.priceQuantityContainer}>
-                <Text style={styles.totalPrice}>
-                  Total: {formatCurrency(item.price * item.quantity)}
-                </Text>
-                <View style={styles.quantityControls}>
-                  <TouchableOpacity style={styles.quantityButton}>
-                    <Text style={styles.quantityButtonText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{item.quantity}</Text>
-                  <TouchableOpacity style={styles.quantityButton}>
-                    <Text style={styles.quantityButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Produk</Text>
+          {items.map(item => (
+            <View key={item.id} style={styles.itemRow}>
+              <Text style={styles.itemName} numberOfLines={1}>
+                {item.name} x{item.quantity}
+              </Text>
+              <Text style={styles.itemPrice}>
+                {formatRupiah(Number(item.price) * item.quantity)}
+              </Text>
             </View>
           ))}
-        </View>
 
-        {/* Payment Summary */}
-        <View style={styles.summarySection}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Harga Produk</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(calculateProductTotal())}
+          <View style={styles.divider} />
+          <View style={styles.rowBetween}>
+            <Text style={styles.muted}>Total Harga Produk</Text>
+            <Text style={styles.value}>{formatRupiah(productTotal)}</Text>
+          </View>
+          <View style={styles.rowBetween}>
+            <Text style={styles.muted}>Ongkos Kirim</Text>
+            <Text style={styles.value}>
+              {shippingCost != null ? formatRupiah(shippingCost) : '-'}
             </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Ongkos Kirim</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(deliveryFee)}
-            </Text>
+          <View style={styles.rowBetween}>
+            <Text style={styles.muted}>Biaya Pengemasan</Text>
+            <Text style={styles.value}>{formatRupiah(PACKAGING_FEE)}</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Biaya Pengemasan</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(serviceFee)}
-            </Text>
-          </View>
-          <View style={[styles.summaryRow, styles.totalRow]}>
+          <View style={[styles.rowBetween, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Keseluruhan</Text>
             <Text style={styles.totalValue}>
-              {formatCurrency(calculateGrandTotal())}
+              {grandTotal != null ? formatRupiah(grandTotal) : '-'}
             </Text>
           </View>
         </View>
 
-        {/* Payment Proof */}
-        <View style={styles.proofSection}>
-          <Text style={styles.proofTitle}>Bukti Pembayaran</Text>
-          <TouchableOpacity
-            style={styles.proofUploadContainer}
-            onPress={handleChooseImage}>
-            {paymentProof ? (
-              <Image source={{uri: paymentProof}} style={styles.proofImage} />
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Bukti Pembayaran</Text>
+          <TouchableOpacity style={styles.proofBox} onPress={handlePickProof}>
+            {proofFile ? (
+              <Image source={{uri: proofFile.uri}} style={styles.proofImage} />
             ) : (
-              <View style={styles.proofPlaceholder}>
-                <Image
-                  source={require('../../assets/upload.png')}
-                  style={styles.uploadIcon}
-                />
-                <Text style={styles.proofPlaceholderText}>
-                  Tekan untuk menambahkan gambar bukti pembayaran (Max 1 gambar)
-                </Text>
+              <Text style={styles.muted}>
+                Tekan untuk memilih screenshot bukti pembayaran
+              </Text>
+            )}
+            {isUploading && (
+              <View style={styles.uploadingOverlay}>
+                <ActivityIndicator color="#fff" />
               </View>
             )}
           </TouchableOpacity>
-
-          {/* Sample Payment Proof */}
-          {!paymentProof && (
-            <View style={styles.sampleProofContainer}>
-              <Image
-                source={require('../../assets/paymentSample.png')}
-                style={styles.sampleProofImage}
-              />
-            </View>
-          )}
         </View>
+
+        {hasValidPoint && (
+          <TouchableOpacity
+            style={[
+              styles.orderButton,
+              (isSubmitting || isUploading) && styles.orderButtonDisabled,
+            ]}
+            onPress={handleCreateOrder}
+            disabled={isSubmitting || isUploading}>
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.orderButtonText}>Buat Pesanan</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
-      {/* Order Button */}
-      <TouchableOpacity style={styles.orderButton} onPress={handleOrder}>
-        <Text style={styles.orderButtonText}>Pesan</Text>
-      </TouchableOpacity>
+      <LocationPicker
+        visible={pickerVisible}
+        initial={coords || undefined}
+        onClose={() => setPickerVisible(false)}
+        onConfirm={handleConfirmLocation}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
+  container: {flex: 1, backgroundColor: '#F5F5F5'},
+  center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
   header: {
     backgroundColor: '#FF6B35',
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  backButton: {
-    marginRight: 15,
+  backIcon: {width: 24, height: 24, tintColor: '#fff'},
+  headerTitle: {color: '#fff', fontSize: 18, fontFamily: fonts.poppinsBold},
+  content: {padding: 16, paddingBottom: 40},
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
   },
-  backButtonIcon: {
-    width: 12,
-    height: 24,
-    marginBottom: 5,
-    tintColor: 'white',
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontFamily: fonts.poppinsMedium,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 15,
-    paddingBottom: 80, // Space for the order button
-  },
-  addressContainer: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    marginTop: 15,
-    marginBottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  addressTextContainer: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  addressLabel: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsMedium,
-    color: '#000',
-    marginBottom: 5,
-  },
-  addressText: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsRegular,
-    color: '#666',
-  },
-  changeButton: {
-    backgroundColor: '#FF6B35',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-  },
-  changeButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontFamily: fonts.poppinsMedium,
-  },
-  vendorSection: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    marginBottom: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  vendorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  vendorImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  vendorInfo: {
-    flex: 1,
-  },
-  vendorName: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsMedium,
-    color: '#000',
-  },
-  vendorAddress: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsRegular,
-    color: '#666',
-  },
-  foodItem: {
-    flexDirection: 'row',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  foodImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  foodDetails: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  foodName: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsMedium,
-    color: '#000',
-    marginBottom: 3,
-  },
-  foodPrice: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsRegular,
-    color: '#666',
-    marginBottom: 5,
-  },
-  noteContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  noteLabel: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsMedium,
-    color: '#000',
-    marginRight: 5,
-  },
-  noteInputContainer: {
-    flex: 1,
+  sectionTitle: {fontFamily: fonts.poppinsBold, fontSize: 15, marginBottom: 10},
+  addressInput: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    height: 35,
-    justifyContent: 'center',
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    color: '#222',
   },
-  noteInput: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsRegular,
-    color: '#666',
-    padding: 0,
-    height: 30,
-  },
-  priceQuantityContainer: {
-    width: 120,
-    alignItems: 'flex-end',
-  },
-  totalPrice: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsMedium,
-    color: '#000',
-    marginBottom: 10,
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quantityButton: {
-    width: 25,
-    height: 25,
-    backgroundColor: '#FF6B35',
-    borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  quantityText: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsMedium,
-    color: '#000',
-    marginHorizontal: 10,
-  },
-  summarySection: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  summaryRow: {
+  rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  summaryLabel: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsRegular,
-    color: '#000',
+  muted: {color: '#666', fontFamily: fonts.poppinsRegular, fontSize: 12},
+  link: {color: '#FF6B35', fontFamily: fonts.poppinsMedium},
+  danger: {color: '#F44336', marginTop: 6, fontSize: 12},
+  storeRow: {flexDirection: 'row', alignItems: 'center', gap: 12},
+  storeImage: {width: 56, height: 56, borderRadius: 28, marginRight: 12},
+  storeName: {fontFamily: fonts.poppinsBold, fontSize: 16},
+  bankLabel: {
+    marginTop: 14,
+    fontFamily: fonts.poppinsMedium,
+    fontSize: 13,
+    color: '#333',
   },
-  summaryValue: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsRegular,
-    color: '#000',
+  bankText: {fontFamily: fonts.poppinsRegular, color: '#444', marginTop: 4},
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  totalRow: {
-    marginTop: 5,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-  },
-  totalLabel: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsBold,
-    color: '#000',
-  },
-  totalValue: {
-    fontSize: 14,
-    fontFamily: fonts.poppinsBold,
-    color: '#000',
-  },
-  proofSection: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  proofTitle: {
-    fontSize: 16,
-    fontFamily: fonts.poppinsBold,
-    color: '#000',
-    marginBottom: 15,
-  },
-  proofUploadContainer: {
+  itemName: {fontFamily: fonts.poppinsRegular, flex: 1, marginRight: 8},
+  itemPrice: {fontFamily: fonts.poppinsMedium},
+  divider: {height: 1, backgroundColor: '#eee', marginVertical: 10},
+  value: {fontFamily: fonts.poppinsMedium, color: '#222'},
+  totalRow: {marginTop: 10},
+  totalLabel: {fontFamily: fonts.poppinsBold, fontSize: 15},
+  totalValue: {fontFamily: fonts.poppinsBold, fontSize: 16, color: '#FF6B35'},
+  proofBox: {
     borderWidth: 1,
+    borderColor: '#ddd',
     borderStyle: 'dashed',
-    borderColor: '#CCCCCC',
-    borderRadius: 10,
-    height: 120,
+    borderRadius: 12,
+    minHeight: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    padding: 12,
   },
-  proofPlaceholder: {
+  proofImage: {width: '100%', height: 220, resizeMode: 'contain'},
+  uploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 15,
-  },
-  uploadIcon: {
-    width: 40,
-    height: 40,
-    tintColor: '#FF6B35',
-    marginBottom: 10,
-  },
-  proofPlaceholderText: {
-    fontSize: 12,
-    fontFamily: fonts.poppinsRegular,
-    color: '#999',
-    textAlign: 'center',
-  },
-  proofImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
-  sampleProofContainer: {
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  sampleProofImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
+    borderRadius: 12,
   },
   orderButton: {
     backgroundColor: '#FF6B35',
-    paddingVertical: 15,
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderRadius: 10,
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: 'center',
-    // position: 'absolute',
-    // bottom: 0,
-    // left: 0,
-    // right: 0,
+    marginTop: 4,
   },
-  orderButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontFamily: fonts.poppinsBold,
-  },
+  orderButtonDisabled: {opacity: 0.5},
+  orderButtonText: {color: '#fff', fontFamily: fonts.poppinsBold, fontSize: 16},
 });
 
 export default PaymentScreen;

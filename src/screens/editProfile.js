@@ -1,4 +1,5 @@
-import React, {useState, useEffect} from 'react';
+import logger from '../utils/logger';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -15,6 +16,7 @@ import {
 import fonts from '../constants/styles';
 import {profileService} from '../api';
 import {getUserData, getUserId} from '../utils/tokenStorage';
+import LocationPicker from '../components/LocationPicker';
 
 // disini bentuk edit profile udah di cek sesuai role nya agar seperti figma,
 // jika role buyer : alamat kirim
@@ -30,16 +32,17 @@ const EditProfileScreen = ({navigation, route}) => {
   const [userRole, setUserRole] = useState('buyer');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   // Fungsi untuk mengambil data profil
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     setIsLoading(true);
     try {
       const userId = await getUserId();
-      console.log('Attempting to fetch profile with user ID:', userId);
+      logger.log('Attempting to fetch profile with user ID:', userId);
 
       const response = await profileService.getProfile();
-      console.log('Profile data received:', response.data);
+      logger.log('Profile data received:', response.data);
 
       // Menyesuaikan format data dari API ke format yang digunakan di form
       const userData = response.data.user;
@@ -75,6 +78,11 @@ const EditProfileScreen = ({navigation, route}) => {
         email: userData.email || '',
         phone: userData.phone || '',
         location: userData.location || '',
+        latitude: userData.latitude != null ? Number(userData.latitude) : null,
+        longitude: userData.longitude != null ? Number(userData.longitude) : null,
+        bank_name: userData.bank_name || '',
+        bank_account_number: userData.bank_account_number || '',
+        bank_account_holder: userData.bank_account_holder || '',
         description: userData.description || '',
         plateNumber: userData.plateNumber || userData.plate_number || '',
         profileImage: userData.profileImage
@@ -82,7 +90,7 @@ const EditProfileScreen = ({navigation, route}) => {
           : require('../../assets/profilePic.png'),
       });
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logger.error('Error fetching profile:', error);
       let errorMessage = 'Gagal mengambil data profil. Silakan coba lagi.';
 
       if (error.message === 'User ID tidak ditemukan') {
@@ -107,12 +115,12 @@ const EditProfileScreen = ({navigation, route}) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigation]);
 
   // Mengambil data profil saat komponen dimuat
   useEffect(() => {
     fetchProfileData();
-  }, []);
+  }, [fetchProfileData]);
 
   const handleBack = () => {
     navigation.goBack();
@@ -143,19 +151,23 @@ const EditProfileScreen = ({navigation, route}) => {
         email: profile.email,
         phone: profile.phone,
         location: profile.location,
+        latitude: profile.latitude,
+        longitude: profile.longitude,
+        bank_name: profile.bank_name,
+        bank_account_number: profile.bank_account_number,
+        bank_account_holder: profile.bank_account_holder,
         ...(userRole === 'seller' ? {description: profile.description} : null),
-        ...(userRole === 'courier' ? {plateNumber: profile.plateNumber} : null),
       };
 
       // Memanggil API untuk update profil
       const response = await profileService.updateProfile(profileData);
-      console.log('Profile updated:', response.data);
+      logger.log('Profile updated:', response.data);
 
       Alert.alert('Sukses', 'Profil berhasil diperbarui', [
         {text: 'OK', onPress: () => navigation.goBack()},
       ]);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logger.error('Error updating profile:', error);
       let errorMessage = 'Gagal memperbarui profil. Silakan coba lagi.';
 
       if (error.message === 'User ID tidak ditemukan') {
@@ -173,8 +185,17 @@ const EditProfileScreen = ({navigation, route}) => {
   };
 
   const handleEditlocation = () => {
-    // Navigasi ke halaman edit alamat
-    navigation.navigate('Editlocation', {location: profile.location});
+    setPickerVisible(true);
+  };
+
+  const handleLocationConfirm = result => {
+    setProfile({
+      ...profile,
+      location: result.address || profile.location,
+      latitude: result.latitude,
+      longitude: result.longitude,
+    });
+    setPickerVisible(false);
   };
 
   const handleChangePassword = () => {
@@ -335,6 +356,35 @@ const EditProfileScreen = ({navigation, route}) => {
                 onChangeText={text => setProfile({...profile, phone: text})}
               />
 
+              <Text style={styles.label}>Bank Refund</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="BCA / BNI / DANA"
+                value={profile.bank_name}
+                onChangeText={text => setProfile({...profile, bank_name: text})}
+              />
+
+              <Text style={styles.label}>Nomor Rekening Refund</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nomor rekening / e-wallet"
+                value={profile.bank_account_number}
+                keyboardType="number-pad"
+                onChangeText={text =>
+                  setProfile({...profile, bank_account_number: text})
+                }
+              />
+
+              <Text style={styles.label}>Nama Pemilik Rekening</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nama sesuai rekening"
+                value={profile.bank_account_holder}
+                onChangeText={text =>
+                  setProfile({...profile, bank_account_holder: text})
+                }
+              />
+
               {/* <Text style={styles.label}>Alamat Kirim</Text>
               <TextInput
                 style={styles.inputlocation}
@@ -407,6 +457,17 @@ const EditProfileScreen = ({navigation, route}) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      <LocationPicker
+        visible={pickerVisible}
+        initial={
+          profile.latitude != null && profile.longitude != null
+            ? {latitude: profile.latitude, longitude: profile.longitude}
+            : undefined
+        }
+        onClose={() => setPickerVisible(false)}
+        onConfirm={handleLocationConfirm}
+      />
     </SafeAreaView>
   );
 };

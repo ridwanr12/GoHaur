@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -9,12 +10,26 @@ import {
   StatusBar,
   SafeAreaView,
   Alert,
+  TextInput,
+  Linking,
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
+import {resolveImageUrl} from '../utils/imageUrl';
+import {statusLabel} from '../utils/orderStatus';
 
 const NewOrderScreen = ({navigation, route}) => {
   const orderData = route.params?.orderData;
+
+  // Hook wajib dipanggil sebelum early return apa pun
+  const [currentStatus, setCurrentStatus] = useState(orderData?.status || 'pending');
+  const [courierName, setCourierName] = useState(orderData?.courier_name || '');
+  const [courierPlate, setCourierPlate] = useState(orderData?.courier_plate || '');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [refundStatus, setRefundStatus] = useState(
+    orderData?.refund_status || 'not_required',
+  );
+  const [refundNote, setRefundNote] = useState('');
 
   // Jika tidak ada data order, tampilkan pesan kosong
   if (!orderData) {
@@ -44,25 +59,48 @@ const NewOrderScreen = ({navigation, route}) => {
   }
 
   // Format data item dari response backend
-  const items = orderData.order_items || [];
+  const items = orderData.order_items
+    ? orderData.order_items
+    : (orderData.Products || []).map(product => {
+        const through = product.OrderProduct || product.order_products || {};
+        const quantity = through.quantity || 1;
+        const lineTotal = Number(through.price || 0);
+        return {
+          id: product.id,
+          name: product.name,
+          quantity,
+          price: lineTotal / quantity,
+          note: through.note,
+        };
+      });
+
   const address =
+    orderData.delivery_address ||
     orderData.shipping_address ||
-    orderData.User?.location ||
+    orderData.buyer?.location ||
     'Alamat tidak diketahui';
-  const status = orderData.status || 'Menunggu Diproses';
-  const buyer = orderData.User?.name || 'Pembeli';
-  const deliveryFee = orderData.shipping_cost || 0;
-  const serviceFee = 2000;
+  const buyer = orderData.buyer?.username || orderData.User?.name || 'Pembeli';
+  const buyerPhone = orderData.buyer?.phone || '';
+  const waNumber = buyerPhone.replace(/\D/g, '').replace(/^0/, '62');
+  const buyerBankName = orderData.buyer?.bank_name || '';
+  const buyerBankNumber = orderData.buyer?.bank_account_number || '';
+  const buyerBankHolder = orderData.buyer?.bank_account_holder || '';
+  const deliveryFee = Number(orderData.shipping_cost || 0);
+  const serviceFee = Number(orderData.packaging_fee ?? 2000);
 
   // Menghitung total harga produk
   const calculateProductTotal = () => {
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
+    return items.reduce(
+      (total, item) => total + Number(item.price) * item.quantity,
+      0,
+    );
   };
 
   // Menghitung total keseluruhan
   const calculateGrandTotal = () => {
     return (
-      orderData.total_amount ||
+      Number(orderData.total_price) ||
+      Number(orderData.total_amount) ||
       calculateProductTotal() + deliveryFee + serviceFee
     );
   };
@@ -78,36 +116,71 @@ const NewOrderScreen = ({navigation, route}) => {
 
   const handleProcessOrder = async () => {
     try {
-      await orderService.updateOrderStatus(orderData.id, {status: 'approved'});
-      console.log('Pesanan diproses');
-      navigation.goBack();
+      await orderService.acceptOrder(orderData.id);
+      setCurrentStatus('accepted');
+      Alert.alert('Berhasil', 'Pesanan diterima. Silakan siapkan pesanan.');
     } catch (error) {
-      console.error(error);
-      Alert.alert('Gagal', 'Tidak dapat memproses pesanan.');
+      logger.error(error);
+      Alert.alert('Gagal', error?.message || 'Tidak dapat memproses pesanan.');
     }
   };
 
   const handleRejectOrder = async () => {
+    if (!rejectionReason.trim()) {
+      Alert.alert('Alasan wajib', 'Tulis alasan penolakan/pembatalan.');
+      return;
+    }
     try {
-      await orderService.updateOrderStatus(orderData.id, {status: 'canceled'});
-      console.log('Pesanan ditolak');
-      navigation.navigate('Home');
+      const response = await orderService.rejectOrder(
+        orderData.id,
+        rejectionReason.trim(),
+      );
+      setCurrentStatus('rejected');
+      setRefundStatus(response?.data?.order?.refund_status || 'pending');
+      Alert.alert(
+        'Pesanan ditolak',
+        'Buyer akan melihat alasan dan status refund.',
+      );
     } catch (error) {
-      console.error(error);
-      Alert.alert('Gagal', 'Tidak dapat menolak pesanan.');
+      logger.error(error);
+      Alert.alert('Gagal', error?.message || 'Tidak dapat menolak pesanan.');
     }
   };
 
-  const handleSendOrder = async () => {
+  const handleRefund = async () => {
     try {
-      await orderService.updateOrderStatus(orderData.id, {
-        status: 'out_for_delivery',
-      });
-      console.log('Pesanan dikirim');
-      navigation.goBack();
+      await orderService.refundOrder(orderData.id, refundNote.trim());
+      setRefundStatus('refunded');
+      Alert.alert('Refund dicatat', 'Buyer akan mendapat notifikasi refund.');
     } catch (error) {
-      console.error(error);
-      Alert.alert('Gagal', 'Tidak dapat mengirim pesanan.');
+      logger.error(error);
+      Alert.alert('Gagal', error?.message || 'Tidak dapat menandai refund.');
+    }
+  };
+
+  const handleChatBuyer = () => {
+    if (!waNumber) {
+      Alert.alert('Nomor tidak ada', 'Buyer belum mengisi nomor telepon.');
+      return;
+    }
+    Linking.openURL(`https://wa.me/${waNumber}`);
+  };
+
+  const handleSendOrder = async () => {
+    if (!courierName.trim() || !courierPlate.trim()) {
+      Alert.alert('Lengkapi data', 'Isi nama pengirim dan plat nomor kendaraan.');
+      return;
+    }
+    try {
+      await orderService.shipOrder(orderData.id, {
+        courier_name: courierName.trim(),
+        courier_plate: courierPlate.trim(),
+      });
+      setCurrentStatus('shipped');
+      Alert.alert('Pesanan dikirim', 'Buyer sudah bisa melihat status Dikirim.');
+    } catch (error) {
+      logger.error(error);
+      Alert.alert('Gagal', error?.message || 'Tidak dapat mengirim pesanan.');
     }
   };
 
@@ -131,18 +204,46 @@ const NewOrderScreen = ({navigation, route}) => {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionLabel}>Lokasi/ Alamat Tuju:</Text>
           <Text style={styles.addressText}>{address}</Text>
+          <Text style={styles.addressText}>
+            Jarak: {orderData.distance_km != null ? `${Number(orderData.distance_km).toFixed(2)} km` : '-'}
+          </Text>
         </View>
 
         {/* Status Section */}
         <View style={styles.statusContainer}>
           <Text style={styles.statusLabel}>Status:</Text>
-          <Text style={styles.statusValue}>{status}</Text>
+          <Text style={styles.statusValue}>{statusLabel(currentStatus)}</Text>
         </View>
 
         {/* Buyer Info */}
         <View style={styles.buyerContainer}>
           <Text style={styles.buyerLabel}>Nama Pembeli:</Text>
           <Text style={styles.buyerValue}>{buyer}</Text>
+
+          <TouchableOpacity style={styles.waButton} onPress={handleChatBuyer}>
+            <Text style={styles.waButtonText}>
+              {buyerPhone ? `Chat WhatsApp (${buyerPhone})` : 'Nomor HP buyer belum diisi'}
+            </Text>
+          </TouchableOpacity>
+
+          {(currentStatus === 'rejected' || refundStatus !== 'not_required') && (
+            <View style={styles.refundBox}>
+              <Text style={styles.refundTitle}>Rekening Refund Buyer</Text>
+              {buyerBankNumber ? (
+                <Text style={styles.refundText}>
+                  {buyerBankName || 'Bank'} • {buyerBankNumber} •{' '}
+                  {buyerBankHolder || '-'}
+                </Text>
+              ) : (
+                <Text style={styles.refundText}>
+                  Buyer belum mengisi rekening refund. Silakan chat.
+                </Text>
+              )}
+              <Text style={styles.refundText}>
+                Nominal: {formatCurrency(calculateGrandTotal())}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Order Items */}
@@ -223,7 +324,7 @@ const NewOrderScreen = ({navigation, route}) => {
             <Image
               source={
                 orderData.payment_proof
-                  ? {uri: orderData.payment_proof}
+                  ? {uri: resolveImageUrl(orderData.payment_proof)}
                   : require('../../assets/paymentSample.png')
               }
               style={styles.proofImage}
@@ -233,19 +334,94 @@ const NewOrderScreen = ({navigation, route}) => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={styles.processButton}
-            onPress={handleProcessOrder}>
-            <Text style={styles.processButtonText}>Proses Pesanan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.rejectButton}
-            onPress={handleRejectOrder}>
-            <Text style={styles.rejectButtonText}>Tolak Pesanan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sendButton} onPress={handleSendOrder}>
-            <Text style={styles.sendButtonText}>Kirim Pesanan</Text>
-          </TouchableOpacity>
+          {currentStatus === 'pending' && (
+            <>
+              <TextInput
+                style={styles.courierInput}
+                placeholder="Alasan penolakan (wajib)"
+                value={rejectionReason}
+                onChangeText={setRejectionReason}
+              />
+              <TouchableOpacity style={styles.processButton} onPress={handleProcessOrder}>
+                <Text style={styles.processButtonText}>Proses Pesanan</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.rejectButton} onPress={handleRejectOrder}>
+                <Text style={styles.rejectButtonText}>Tolak Pesanan</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {currentStatus === 'accepted' && (
+            <>
+              <TextInput
+                style={styles.courierInput}
+                placeholder="Nama pengirim"
+                value={courierName}
+                onChangeText={setCourierName}
+              />
+              <TextInput
+                style={styles.courierInput}
+                placeholder="Plat nomor kendaraan"
+                value={courierPlate}
+                onChangeText={setCourierPlate}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity style={styles.sendButton} onPress={handleSendOrder}>
+                <Text style={styles.sendButtonText}>Kirim Pesanan</Text>
+              </TouchableOpacity>
+
+              <TextInput
+                style={styles.courierInput}
+                placeholder="Alasan pembatalan (wajib, misal stok habis)"
+                value={rejectionReason}
+                onChangeText={setRejectionReason}
+              />
+              <TouchableOpacity style={styles.rejectButton} onPress={handleRejectOrder}>
+                <Text style={styles.rejectButtonText}>Batalkan Pesanan</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {currentStatus === 'rejected' && (
+            <>
+              <Text style={styles.mutedText}>
+                Pesanan ditolak: {orderData.rejection_reason || rejectionReason}
+              </Text>
+              <Text style={styles.mutedText}>
+                Status refund:{' '}
+                {refundStatus === 'refunded'
+                  ? 'sudah dikirim'
+                  : refundStatus === 'pending'
+                  ? 'menunggu refund'
+                  : 'tidak perlu refund'}
+              </Text>
+
+              {refundStatus === 'pending' && (
+                <>
+                  <TextInput
+                    style={styles.courierInput}
+                    placeholder="Catatan refund (misal: transfer BCA 12:30)"
+                    value={refundNote}
+                    onChangeText={setRefundNote}
+                  />
+                  <TouchableOpacity style={styles.sendButton} onPress={handleRefund}>
+                    <Text style={styles.sendButtonText}>Refund Sudah Dikirim</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </>
+          )}
+
+          {currentStatus === 'shipped' && (
+            <Text style={styles.mutedText}>
+              Pesanan sedang dikirim oleh {orderData.courier_name || courierName} (
+              {orderData.courier_plate || courierPlate}).
+            </Text>
+          )}
+
+          {currentStatus === 'completed' && (
+            <Text style={styles.mutedText}>Pesanan sudah diterima buyer.</Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -568,6 +744,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.poppinsBold,
   },
+  courierInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+    fontFamily: fonts.poppinsRegular,
+  },
+  mutedText: {
+    color: '#666',
+    fontFamily: fonts.poppinsRegular,
+    textAlign: 'center',
+    paddingVertical: 10,
+  },
+  waButton: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#25D366',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  waButtonText: {color: '#128C7E', fontFamily: fonts.poppinsMedium},
+  refundBox: {
+    marginTop: 12,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 10,
+    padding: 10,
+  },
+  refundTitle: {fontFamily: fonts.poppinsBold, fontSize: 13, marginBottom: 4},
+  refundText: {fontFamily: fonts.poppinsRegular, fontSize: 12, color: '#444'},
 });
 
 export default NewOrderScreen;

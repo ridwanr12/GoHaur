@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 import React, {useState} from 'react';
 import {
   View,
@@ -18,7 +19,6 @@ const SignupScreen = ({navigation}) => {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('');
   const [description, setDescription] = useState(''); // Tambahkan state untuk deskripsi toko
-  const [plateNumber, setPlateNumber] = useState(''); // Tambahkan state untuk nomor plat
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -26,18 +26,11 @@ const SignupScreen = ({navigation}) => {
   const [location, setLocation] = useState(''); // Tambahkan state untuk location
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
   // Fungsi untuk memilih role
   const selectRole = selectedRole => {
     setRole(selectedRole);
-    // Reset field yang tidak relevan berdasarkan role
-    if (selectedRole === 'seller') {
-      setPlateNumber('');
-    } else if (selectedRole === 'courier') {
+    if (selectedRole !== 'seller') {
       setDescription('');
-    } else {
-      setDescription('');
-      setPlateNumber('');
     }
   };
 
@@ -57,15 +50,9 @@ const SignupScreen = ({navigation}) => {
       setError('Semua field harus diisi');
       return false;
     }
-
     // Validasi field khusus berdasarkan role
     if (role === 'seller' && !description) {
       setError('Deskripsi toko harus diisi');
-      return false;
-    }
-
-    if (role === 'courier' && !plateNumber) {
-      setError('Nomor plat kendaraan harus diisi');
       return false;
     }
 
@@ -118,30 +105,27 @@ const SignupScreen = ({navigation}) => {
       location: location || 'string',
     };
 
-    console.log('Data yang dikirim:', userData); // Tambahkan log ini
-
+    logger.log('Data yang dikirim:', userData); // Tambahkan log ini
     // Tambahkan field tambahan berdasarkan role
     if (role === 'seller') {
       userData.description = description;
-    } else if (role === 'courier') {
-      userData.plateNumber = plateNumber;
     }
 
     try {
       setIsLoading(true);
       const response = await authService.register(userData);
-      console.log('Register berhasil:', response);
+      logger.log('Register berhasil:', response);
 
       Alert.alert(
         'Pendaftaran Berhasil',
         'Akun Anda telah berhasil dibuat. Silakan login.',
         [{text: 'OK', onPress: () => navigation.navigate('Signin')}],
       );
-    } catch (error) {
-      console.error('Register gagal:', error.message);
+    } catch (err) {
+      logger.error('Register gagal:', err.message);
       Alert.alert(
         'Pendaftaran Gagal',
-        error.message || 'Terjadi kesalahan saat mendaftar',
+        err.message || 'Terjadi kesalahan saat mendaftar',
       );
     } finally {
       setIsLoading(false);
@@ -153,7 +137,6 @@ const SignupScreen = ({navigation}) => {
   const roleOptions = [
     {id: 'buyer', label: 'Pembeli'},
     {id: 'seller', label: 'Penjual'},
-    {id: 'courier', label: 'Kurir'},
   ];
 
   return (
@@ -222,20 +205,6 @@ const SignupScreen = ({navigation}) => {
                 placeholderTextColor="#AAAAAA"
                 value={description}
                 onChangeText={setDescription}
-              />
-            </>
-          )}
-
-          {/* Field Nomor Plat hanya untuk role courier */}
-          {role === 'courier' && (
-            <>
-              <Text style={styles.label}>Nomor Plat Kendaraan</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Masukkan nomor plat kendaraan"
-                placeholderTextColor="#AAAAAA"
-                value={plateNumber}
-                onChangeText={setPlateNumber}
               />
             </>
           )}

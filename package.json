@@ -6,21 +6,26 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.js\" \"__tests__/**/*.tsx\" \"*.js\"",
+    "verify": "npm run lint && npm test",
     "start": "react-native start",
     "test": "jest"
   },
   "dependencies": {
     "@bam.tech/react-native-make": "^3.0.3",
     "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-community/geolocation": "^3.4.0",
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
     "axios": "^1.9.0",
     "react": "19.0.0",
     "react-native": "0.78.1",
     "react-native-asset": "^2.1.1",
+    "react-native-image-picker": "^7.2.3",
     "react-native-reanimated": "^3.17.5",
     "react-native-safe-area-context": "^5.4.0",
-    "react-native-screens": "^4.10.0"
+    "react-native-screens": "^4.10.0",
+    "react-native-webview": "^13.17.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
