@@ -64,10 +64,11 @@ const RestaurantCard = ({item, navigation, distanceKm}) => {
     navigation.navigate('Store', {storeData: item});
   };
 
-  const ratingObj =
-    item.Ratings && item.Ratings.length > 0
-      ? item.Ratings[0]
-      : {average_rating: 0, amount: 0};
+  const ratingObj = item.Rating ||
+    (item.Ratings && item.Ratings.length > 0 ? item.Ratings[0] : null) || {
+      average_rating: 0,
+      amount: 0,
+    };
   const ratingText =
     ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
   const totalOrdersText =
@@ -84,7 +85,7 @@ const RestaurantCard = ({item, navigation, distanceKm}) => {
               source={require('../../assets/restaurant.png')}
               style={styles.restaurantImage}
             />
-            <View>
+            <View style={styles.restaurantText}>
               <Text style={styles.restaurantName}>{item.name}</Text>
               <Text style={styles.restaurantLocation}>
                 {item.description || 'Deskripsi toko'}
@@ -331,6 +332,8 @@ const styles = StyleSheet.create({
   restaurantInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
   },
   restaurantImage: {
     width: 40,
@@ -343,6 +346,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.poppinsMedium,
     color: '#000',
   },
+  restaurantText: {
+    flexShrink: 1,
+  },
   restaurantLocation: {
     fontSize: 12,
     fontFamily: fonts.poppinsRegular,
@@ -350,6 +356,7 @@ const styles = StyleSheet.create({
   },
   ratingContainer: {
     alignItems: 'flex-end',
+    flexShrink: 0,
   },
   totalOrders: {
     fontSize: 12,

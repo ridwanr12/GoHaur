@@ -65,7 +65,8 @@ const SellerHomeScreen = ({navigation}) => {
     ]);
   };
 
-  const ratingObj = storeData?.Ratings?.[0] || {average_rating: 0, amount: 0};
+  const ratingObj = storeData?.Rating ||
+    storeData?.Ratings?.[0] || {average_rating: 0, amount: 0};
   const ratingText =
     ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
 

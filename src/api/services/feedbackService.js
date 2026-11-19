@@ -15,9 +15,10 @@ const feedbackService = {
     return apiClient.get(`/api/feedback/store/${storeId}/rating`);
   },
 
-  // GET: Mendapatkan feedback untuk pesanan tertentu
+  // GET: Mendapatkan feedback untuk pesanan tertentu.
+  // 404 berarti pesanan belum direview; jangan tampilkan sebagai error.
   getOrderFeedback: orderId => {
-    return apiClient.get(`/api/feedback/order/${orderId}`);
+    return apiClient.get(`/api/feedback/order/${orderId}`, {}, {silent: true});
   },
 
   // GET: Mendapatkan detail feedback berdasarkan ID

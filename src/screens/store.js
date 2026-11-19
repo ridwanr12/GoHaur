@@ -252,7 +252,9 @@ const StoreScreen = ({navigation, route}) => {
             </View>
             <View style={styles.ratingContainer}>
               <Text style={styles.ratingText}>
-                {storeData.Ratings?.[0]?.average_rating || storeData.rating}
+                {storeData.Rating?.average_rating ??
+                  storeData.Ratings?.[0]?.average_rating ??
+                  storeData.rating}
               </Text>
               <Text style={styles.ratingStar}>⭐</Text>
             </View>
@@ -354,7 +356,8 @@ const StoreScreen = ({navigation, route}) => {
                   <Text style={styles.modalStoreName}>{storeData.name}</Text>
                   <View style={styles.modalRating}>
                     <Text style={styles.modalRatingText}>
-                      {storeData.Ratings?.[0]?.average_rating ||
+                      {storeData.Rating?.average_rating ??
+                        storeData.Ratings?.[0]?.average_rating ??
                         storeData.rating}
                     </Text>
                     <Text style={styles.modalRatingStar}>⭐</Text>

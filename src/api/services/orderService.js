@@ -2,8 +2,12 @@ import apiClient from '../apiClient';
 
 const orderService = {
   // Pesanan milik buyer yang sedang login
-  getAllOrders: () => {
-    return apiClient.get('/api/orders/my-orders');
+  getAllOrders: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = query
+      ? `/api/orders/my-orders?${query}`
+      : '/api/orders/my-orders';
+    return apiClient.get(url);
   },
 
   // Pesanan yang masuk ke toko seller

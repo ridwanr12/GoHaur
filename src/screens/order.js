@@ -13,7 +13,12 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import {orderService} from '../api';
-import {statusLabel, TAB_TO_STATUS, statusColor, statusBackground} from '../utils/orderStatus';
+import {
+  statusLabel,
+  TAB_TO_STATUS,
+  statusColor,
+  statusBackground,
+} from '../utils/orderStatus';
 import NotificationBell from '../components/NotificationBell';
 
 // Komponen untuk menampilkan item pesanan
@@ -82,7 +87,7 @@ const OrderScreen = ({navigation}) => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await orderService.getAllOrders();
+        const response = await orderService.getAllOrders({limit: 100});
         if (response.data && response.data.orders) {
           setOrders(response.data.orders);
         } else if (Array.isArray(response.data)) {
