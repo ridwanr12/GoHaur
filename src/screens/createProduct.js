@@ -32,7 +32,7 @@ const CreateProductScreen = ({navigation, route}) => {
   );
   const [image, setImage] = useState(productData?.images?.[0] || null);
   const [stock, setStock] = useState(
-    productData?.stock != null ? String(productData.stock) : '0',
+    productData?.stock != null ? String(productData.stock) : '',
   );
   const [isUploading, setIsUploading] = useState(false);
 
@@ -148,6 +148,7 @@ const CreateProductScreen = ({navigation, route}) => {
             keyboardType="numeric"
             value={price}
             onChangeText={setPrice}
+            selectTextOnFocus
           />
         </View>
 
@@ -160,6 +161,7 @@ const CreateProductScreen = ({navigation, route}) => {
           keyboardType="numeric"
           value={stock}
           onChangeText={setStock}
+          selectTextOnFocus
         />
 
         {/* Gambar Produk */}
