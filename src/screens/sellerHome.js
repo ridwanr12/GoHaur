@@ -14,12 +14,14 @@ import {
 } from 'react-native';
 import fonts from '../constants/styles';
 import storeService from '../api/services/storeService';
+import productService from '../api/services/productService';
 import {resolveImageUrl} from '../utils/imageUrl';
 import NotificationBell from '../components/NotificationBell';
 
 const SellerHomeScreen = ({navigation}) => {
   const [storeData, setStoreData] = useState(null);
   const [products, setProducts] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +32,14 @@ const SellerHomeScreen = ({navigation}) => {
           const store = response.data.store;
           setStoreData(store);
           setProducts(store.Products || []);
+
+          try {
+            const statsResponse = await storeService.getStoreStats(store.id);
+            setStats(statsResponse?.data?.stats || null);
+          } catch (error) {
+            logger.error('Failed to fetch store stats:', error);
+            setStats(null);
+          }
         }
       } catch (error) {
         logger.error('Failed to fetch store:', error);
@@ -55,9 +65,10 @@ const SellerHomeScreen = ({navigation}) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            // await productService.deleteProduct(productId);
+            await productService.deleteProduct(productId);
             setProducts(prev => prev.filter(p => p.id !== productId));
           } catch (error) {
+            logger.error('Failed to delete product:', error);
             Alert.alert('Gagal', 'Tidak dapat menghapus produk.');
           }
         },
@@ -159,7 +170,9 @@ const SellerHomeScreen = ({navigation}) => {
                           'Alamat toko'}
                       </Text>
                       <Text style={styles.storeSold}>
-                        {storeData?.total_sold || 0} Item Terjual
+                        {stats
+                          ? `${stats.completed_orders} pesanan selesai • ${stats.unique_buyers} pembeli • ${stats.review_count} ulasan`
+                          : 'Statistik belum tersedia'}
                       </Text>
                     </View>
                   </View>
