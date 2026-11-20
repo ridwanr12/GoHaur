@@ -79,7 +79,9 @@ const SellerHomeScreen = ({navigation}) => {
   const ratingObj = storeData?.Rating ||
     storeData?.Ratings?.[0] || {average_rating: 0, amount: 0};
   const ratingText =
-    ratingObj.average_rating > 0 ? `${ratingObj.average_rating}/5.0` : 'Baru';
+    ratingObj.average_rating > 0
+      ? `${Number(ratingObj.average_rating).toFixed(1)}/5.0`
+      : 'Baru';
 
   const renderProduct = ({item}) => (
     <View style={styles.productCard}>
@@ -171,7 +173,7 @@ const SellerHomeScreen = ({navigation}) => {
                       </Text>
                       <Text style={styles.storeSold}>
                         {stats
-                          ? `${stats.completed_orders} pesanan selesai • ${stats.unique_buyers} pembeli • ${stats.review_count} ulasan`
+                          ? `${stats.items_sold ?? 0} Item Terjual`
                           : 'Statistik belum tersedia'}
                       </Text>
                     </View>

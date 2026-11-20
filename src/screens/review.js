@@ -101,7 +101,7 @@ const ReviewScreen = ({navigation, route}) => {
             </Text>
             <Text style={styles.storeSold}>
               {stats
-                ? `${stats.completed_orders} pesanan selesai • ${stats.unique_buyers} pembeli • ${stats.review_count} ulasan`
+                ? `${stats.items_sold ?? 0} Item Terjual`
                 : 'Memuat statistik...'}
             </Text>
           </View>
@@ -156,9 +156,7 @@ const ReviewScreen = ({navigation, route}) => {
                     />
                     <View style={styles.reviewerInfo}>
                       <Text style={styles.reviewerName}>
-                        {review.User?.username ||
-                          review.User?.name ||
-                          'Anonim'}
+                        {review.User?.username || review.User?.name || 'Anonim'}
                       </Text>
                       <Text style={styles.reviewText}>
                         {review.description}
